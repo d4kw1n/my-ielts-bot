@@ -3,6 +3,14 @@ import { config } from '../config';
 
 let groqClient: Groq | null = null;
 
+// Custom error for rate limiting — callers can catch this to stop retrying
+export class RateLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
+
 export function getGroqClient(): Groq | null {
   if (!config.groqApiKey) return null;
   if (!groqClient) {
@@ -38,6 +46,11 @@ export async function askAi(prompt: string, systemPrompt?: string): Promise<stri
     return response.choices[0]?.message?.content || '❌ AI không trả về kết quả.';
   } catch (error: any) {
     console.error('Groq API Error:', error);
+    // Detect rate limit (429) and throw specific error
+    if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('rate_limit')) {
+      throw new RateLimitError('Groq API rate limit exceeded');
+    }
     return '❌ Lỗi kết nối với AI. Vui lòng thử lại sau.';
   }
 }
+

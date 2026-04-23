@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import * as crypto from 'crypto';
 import db from '../database/db';
-import { askAi } from './ai_service';
+import { askAi, RateLimitError } from './ai_service';
 import { logger } from '../utils/logger';
 
 /**
@@ -51,12 +51,7 @@ const IELTS_SOURCES = [
     type: 'article' as const,
     topics: ['science', 'technology', 'health'],
   },
-  {
-    name: 'The Economist - Finance',
-    url: 'https://www.economist.com/finance-and-economics',
-    type: 'article' as const,
-    topics: ['economics', 'work'],
-  },
+
   // --- Vietnamese IELTS Sites ---
   {
     name: 'IELTS Fighter',
@@ -76,12 +71,7 @@ const IELTS_SOURCES = [
     type: 'article' as const,
     topics: ['education', 'environment'],
   },
-  {
-    name: 'IELTS Vietop',
-    url: 'https://vietop.edu.vn/blog/',
-    type: 'article' as const,
-    topics: ['education', 'society'],
-  },
+
 ];
 
 // Famous IELTS book templates — AI generates questions in these styles
@@ -355,14 +345,19 @@ export async function runHarvester(): Promise<{ articlesProcessed: number; quest
   logger.info('🤖 [Harvester] Starting question harvesting run...');
   let totalArticles = 0;
   let totalQuestions = 0;
+  let rateLimitHit = false;
+  const MAX_GAPS_PER_RUN = 15; // Prevent burning through API quota
+  let gapsFilled = 0;
 
   // Phase 1: Scrape articles from news sources and generate questions
   for (const source of IELTS_SOURCES) {
+    if (rateLimitHit) break;
     try {
       const links = await scrapeArticleLinks(source.url, 2);
       logger.info(`[Harvester] Found ${links.length} articles from ${source.name}`);
 
       for (const link of links) {
+        if (rateLimitHit) break;
         // Skip if we already processed this URL recently
         const existingFromUrl = db.prepare('SELECT id FROM question_bank WHERE source_url = ? LIMIT 1').get(link);
         if (existingFromUrl) continue;
@@ -370,20 +365,32 @@ export async function runHarvester(): Promise<{ articlesProcessed: number; quest
         const article = await extractArticleText(link);
         if (!article) continue;
 
-        const count = await generateQuestionsFromArticle(article, link, source.topics);
-        totalArticles++;
-        totalQuestions += count;
-        logger.info(`[Harvester] Generated ${count} questions from: ${article.title}`);
+        try {
+          const count = await generateQuestionsFromArticle(article, link, source.topics);
+          totalArticles++;
+          totalQuestions += count;
+          logger.info(`[Harvester] Generated ${count} questions from: ${article.title}`);
+        } catch (e) {
+          if (e instanceof RateLimitError) { rateLimitHit = true; break; }
+          throw e;
+        }
 
-        // Rate limiting: wait 2s between AI calls
-        await new Promise(r => setTimeout(r, 2000));
+        // Rate limiting: wait 3s between AI calls
+        await new Promise(r => setTimeout(r, 3000));
       }
     } catch (e) {
+      if (e instanceof RateLimitError) { rateLimitHit = true; break; }
       logger.error(`[Harvester] Error processing source ${source.name}: ${(e as Error).message}`);
     }
   }
 
-  // Phase 2: Fill gaps in the topic × band matrix
+  if (rateLimitHit) {
+    logger.warn('⚠️ [Harvester] Rate limit hit during Phase 1. Stopping AI generation.');
+    logger.info(`🤖 [Harvester] Partial complete! Articles: ${totalArticles}, New Questions: ${totalQuestions}`);
+    return { articlesProcessed: totalArticles, questionsGenerated: totalQuestions };
+  }
+
+  // Phase 2: Fill gaps in the topic × band matrix (limited per run)
   const coverageStats = db.prepare(`
     SELECT topic, band, COUNT(*) as cnt FROM question_bank 
     WHERE topic != '' AND topic IS NOT NULL
@@ -395,33 +402,57 @@ export async function runHarvester(): Promise<{ articlesProcessed: number; quest
     coverageMap[`${row.topic}_${row.band}`] = row.cnt;
   }
 
-  // Find topic × band combos with < 5 questions
+  // Collect all gaps, shuffle, then fill up to MAX
+  const gaps: { topic: string; band: number; needed: number }[] = [];
   for (const topic of GENERATION_MATRIX.topics) {
     for (const band of GENERATION_MATRIX.bands) {
       const key = `${topic}_${band}`;
       const current = coverageMap[key] || 0;
-
       if (current < 5) {
-        const needed = 5 - current;
-        const count = await generateBulkQuestions(topic, band, needed);
-        totalQuestions += count;
-        logger.info(`[Harvester] Filled gap: ${topic}@${band} +${count} questions (was ${current})`);
-
-        // Rate limiting
-        await new Promise(r => setTimeout(r, 2000));
+        gaps.push({ topic, band, needed: 5 - current });
       }
     }
   }
+  // Shuffle to spread across topics instead of always starting with the same one
+  gaps.sort(() => Math.random() - 0.5);
 
-  // Phase 3: Generate questions in the style of famous IELTS books
-  for (const book of BOOK_TEMPLATES) {
-    const count = await generateBookStyleQuestions(book);
-    totalQuestions += count;
-    logger.info(`[Harvester] Book-style (${book.book}): +${count} questions`);
-    await new Promise(r => setTimeout(r, 2000));
+  for (const gap of gaps) {
+    if (rateLimitHit || gapsFilled >= MAX_GAPS_PER_RUN) break;
+    try {
+      const count = await generateBulkQuestions(gap.topic, gap.band, gap.needed);
+      totalQuestions += count;
+      gapsFilled++;
+      logger.info(`[Harvester] Filled gap: ${gap.topic}@${gap.band} +${count} questions (${gapsFilled}/${MAX_GAPS_PER_RUN})`);
+      await new Promise(r => setTimeout(r, 3000));
+    } catch (e) {
+      if (e instanceof RateLimitError) { rateLimitHit = true; break; }
+      logger.error(`[Harvester] Gap fill error ${gap.topic}@${gap.band}: ${(e as Error).message}`);
+    }
   }
 
-  logger.info(`🤖 [Harvester] Completed! Articles: ${totalArticles}, New Questions: ${totalQuestions}`);
+  if (rateLimitHit) {
+    logger.warn(`⚠️ [Harvester] Rate limit hit during Phase 2 (filled ${gapsFilled} gaps). Skipping Phase 3.`);
+    logger.info(`🤖 [Harvester] Partial complete! Articles: ${totalArticles}, New Questions: ${totalQuestions}`);
+    return { articlesProcessed: totalArticles, questionsGenerated: totalQuestions };
+  }
+
+  // Phase 3: Generate questions in the style of famous IELTS books (1-2 books per run)
+  const shuffledBooks = [...BOOK_TEMPLATES].sort(() => Math.random() - 0.5).slice(0, 2);
+  for (const book of shuffledBooks) {
+    if (rateLimitHit) break;
+    try {
+      const count = await generateBookStyleQuestions(book);
+      totalQuestions += count;
+      logger.info(`[Harvester] Book-style (${book.book}): +${count} questions`);
+      await new Promise(r => setTimeout(r, 3000));
+    } catch (e) {
+      if (e instanceof RateLimitError) { rateLimitHit = true; break; }
+      logger.error(`[Harvester] Book generation error: ${(e as Error).message}`);
+    }
+  }
+
+  const status = rateLimitHit ? 'Partial (rate limited)' : 'Complete';
+  logger.info(`🤖 [Harvester] ${status}! Articles: ${totalArticles}, New Questions: ${totalQuestions}, Gaps filled: ${gapsFilled}`);
   return { articlesProcessed: totalArticles, questionsGenerated: totalQuestions };
 }
 
