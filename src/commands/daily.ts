@@ -16,12 +16,22 @@ function saveLearnedItem(userId: number, type: string, word: string, meaning: st
   `).run(userId, type, word, meaning, example, today);
 }
 
+function getCurrentLearningBand(user: any): number {
+  const target = user.target_score || 7.0;
+  if (!user.estimated_band) return target;
+  
+  const streak = user.study_streak || 0;
+  // Increase by 0.5 band for every 3 days of consistent study
+  const calculated = user.estimated_band + Math.floor(streak / 3) * 0.5;
+  return Math.min(target, calculated);
+}
+
 export async function sendDailyVocab(bot: any, telegramId: string, chatId: string | number, topic?: string): Promise<void> {
   const lang = getUserLang(telegramId);
-  const user = db.prepare('SELECT id, target_score FROM users WHERE telegram_id = ?').get(telegramId) as any;
+  const user = db.prepare('SELECT id, target_score, estimated_band, study_streak FROM users WHERE telegram_id = ?').get(telegramId) as any;
   if (!user) return;
 
-  const band = user.target_score || 7.0;
+  const band = getCurrentLearningBand(user);
 
   const findingMsg = topic 
     ? (lang === 'vi' ? `⏳ Đang tìm kiếm từ vựng IELTS chủ đề *${topic}* cho bạn...` : `⏳ Finding a great IELTS vocabulary about *${topic}* for you...`)
@@ -69,13 +79,15 @@ export async function sendDailyVocab(bot: any, telegramId: string, chatId: strin
 
 export async function sendDailyGrammar(bot: any, telegramId: string, chatId: string | number): Promise<void> {
   const lang = getUserLang(telegramId);
-  const user = db.prepare('SELECT id FROM users WHERE telegram_id = ?').get(telegramId) as any;
+  const user = db.prepare('SELECT id, target_score, estimated_band, study_streak FROM users WHERE telegram_id = ?').get(telegramId) as any;
   if (!user) return;
+
+  const band = getCurrentLearningBand(user);
 
   await bot.telegram.sendMessage(chatId, lang === 'vi' ? '⏳ Đang soạn cấu trúc ngữ pháp...' : '⏳ Preparing a grammar structure...');
 
   const prompt = `
-    Generate 1 advanced IELTS grammar structure (e.g. Inversion, Mixed Conditionals, Cleft sentences, Participle clauses).
+    Generate 1 advanced IELTS grammar structure suitable for band ${band} (e.g. Inversion, Mixed Conditionals, Cleft sentences, Participle clauses).
     Format as JSON:
     {
       "name": "Name of the structure",
@@ -109,8 +121,10 @@ export async function sendDailyGrammar(bot: any, telegramId: string, chatId: str
 
 export async function sendDailyPhrase(bot: any, telegramId: string, chatId: string | number, topic?: string): Promise<void> {
   const lang = getUserLang(telegramId);
-  const user = db.prepare('SELECT id FROM users WHERE telegram_id = ?').get(telegramId) as any;
+  const user = db.prepare('SELECT id, target_score, estimated_band, study_streak FROM users WHERE telegram_id = ?').get(telegramId) as any;
   if (!user) return;
+
+  const band = getCurrentLearningBand(user);
 
   const findingMsg = topic 
     ? (lang === 'vi' ? `⏳ Đang lấy cụm từ/thành ngữ chủ đề *${topic}*...` : `⏳ Fetching phrase/idiom about *${topic}*...`)
@@ -120,7 +134,7 @@ export async function sendDailyPhrase(bot: any, telegramId: string, chatId: stri
   const topicInstruction = topic ? `The phrase/idiom MUST be strictly related to the topic: "${topic}".` : '';
 
   const prompt = `
-    Generate 1 useful IELTS phrase, idiom, or phrasal verb.
+    Generate 1 useful IELTS phrase, idiom, or phrasal verb suitable for band ${band}.
     ${topicInstruction}
     Format as JSON:
     {

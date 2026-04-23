@@ -19,9 +19,20 @@ export function registerPlanCommand(bot: any): void {
     const lang = getUserLang(telegramId);
     const currentPhase = getUserPhase(telegramId);
 
-    const user = db.prepare('SELECT target_score, target_date, estimated_band FROM users WHERE telegram_id = ?').get(telegramId) as any;
+    const user = db.prepare('SELECT target_score, target_date, estimated_band, study_streak FROM users WHERE telegram_id = ?').get(telegramId) as any;
 
     const phaseInfo = getPhaseInfo(currentPhase);
+    
+    let currentLearningBand = user?.target_score || 7.0;
+    let progressionTextVi = '';
+    let progressionTextEn = '';
+    
+    if (user?.estimated_band) {
+      const streak = user?.study_streak || 0;
+      currentLearningBand = Math.min(user.target_score || 7.0, user.estimated_band + Math.floor(streak / 3) * 0.5);
+      progressionTextVi = `\n📈 Lộ trình thích ứng: Từ Band ${user.estimated_band} lên ${user.target_score || 7.0} (Cứ 3 ngày streak tăng 0.5 band)`;
+      progressionTextEn = `\n📈 Adaptive Roadmap: From Band ${user.estimated_band} to ${user.target_score || 7.0} (+0.5 band per 3-day streak)`;
+    }
 
     let header = lang === 'vi'
       ? `📋 KẾ HOẠCH HỌC IELTS ${user?.target_score || 7.0}
@@ -29,6 +40,8 @@ export function registerPlanCommand(bot: any): void {
 🎯 Mục tiêu: Band ${user?.target_score || 7.0}
 📅 Deadline: ${user?.target_date || 'Chưa đặt (dùng /settings)'}
 🏷️ Trình độ ước tính: ${user?.estimated_band ? `Band ${user.estimated_band}` : 'Chưa xác định (dùng /placement)'}
+🔥 Chuỗi học (Streak): ${user?.study_streak || 0} ngày
+📚 Band học hôm nay: *Band ${currentLearningBand}*${progressionTextVi}
 📍 Phase hiện tại: ${phaseInfo.nameVi}
 ⏰ Thời gian học: 1-2 giờ/ngày`
       : `📋 IELTS ${user?.target_score || 7.0} STUDY PLAN
@@ -36,6 +49,8 @@ export function registerPlanCommand(bot: any): void {
 🎯 Target: Band ${user?.target_score || 7.0}
 📅 Deadline: ${user?.target_date || 'Not set (use /settings)'}
 🏷️ Estimated level: ${user?.estimated_band ? `Band ${user.estimated_band}` : 'Unknown (use /placement)'}
+🔥 Study Streak: ${user?.study_streak || 0} days
+📚 Today's Learning Band: *Band ${currentLearningBand}*${progressionTextEn}
 📍 Current Phase: ${phaseInfo.name}
 ⏰ Study time: 1-2 hours/day`;
 
