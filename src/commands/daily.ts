@@ -2,6 +2,7 @@ import { Context, Markup } from 'telegraf';
 import db from '../database/db';
 import { Lang } from '../utils/i18n';
 import { askAi } from '../services/ai_service';
+import { recordMistake } from './mistakes';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -346,6 +347,14 @@ export function registerDailyCommands(bot: any): void {
     const feedback = isCorrect
       ? `✅ *${item.word}* = ${item.meaning}`
       : `❌ *${item.word}* = ${item.meaning}`;
+
+    // Track mistakes
+    if (!isCorrect) {
+      const user = db.prepare('SELECT id FROM users WHERE telegram_id = ?').get(telegramId) as any;
+      if (user) {
+        recordMistake(user.id, item.type || 'vocab', `What is the meaning of "${item.word}"?`, `option ${selected}`, item.meaning);
+      }
+    }
 
     await ctx.answerCbQuery(isCorrect ? '✅' : '❌');
 

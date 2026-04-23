@@ -22,6 +22,9 @@ import { registerSpeakCommand } from './commands/speak';
 import { registerReadCommand } from './commands/read';
 import { registerWeaknessCommand } from './commands/weakness';
 import { registerBankCommand } from './commands/bank';
+import { registerTodayPlanCommand } from './commands/today_plan';
+import { registerTemplateCommand } from './commands/template';
+import { registerMistakesCommand } from './commands/mistakes';
 import { setupScheduler } from './services/scheduler';
 import { logger } from './utils/logger';
 
@@ -90,6 +93,9 @@ async function main() {
   registerReadCommand(bot);
   registerWeaknessCommand(bot);
   registerBankCommand(bot);
+  registerTodayPlanCommand(bot);
+  registerTemplateCommand(bot);
+  registerMistakesCommand(bot);
 
   // Setup telegram native command menu
   bot.telegram.setMyCommands([
@@ -118,6 +124,9 @@ async function main() {
     { command: 'read', description: '📖 Luyện đọc hiểu Reading' },
     { command: 'weakness', description: '🧠 Phân tích điểm yếu cá nhân' },
     { command: 'bank', description: '📦 Quản lý kho câu hỏi + thu thập tự động' },
+    { command: 'today_plan', description: '📋 Kế hoạch học cụ thể hôm nay' },
+    { command: 'template', description: '📋 Mẫu cấu trúc essay Task 2' },
+    { command: 'mistakes', description: '📊 Phân tích lỗi sai lặp lại' },
     { command: 'settings', description: '⚙️ Cài đặt mục tiêu, ngôn ngữ' }
   ]).catch((err: any) => console.error('Failed to set commands:', err));
 

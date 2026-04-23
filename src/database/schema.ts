@@ -141,6 +141,19 @@ const migrations = [
     ALTER TABLE question_bank ADD COLUMN source_url TEXT;
     ALTER TABLE question_bank ADD COLUMN content_hash TEXT;
     ALTER TABLE question_bank ADD COLUMN topic TEXT;
+  `,
+  // Version 4: Mistake tracking
+  `
+    CREATE TABLE IF NOT EXISTS mistake_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      question TEXT NOT NULL,
+      user_answer TEXT,
+      correct_answer TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
   `
 ];
 
