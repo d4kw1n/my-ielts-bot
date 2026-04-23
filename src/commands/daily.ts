@@ -16,17 +16,23 @@ function saveLearnedItem(userId: number, type: string, word: string, meaning: st
   `).run(userId, type, word, meaning, example, today);
 }
 
-export async function sendDailyVocab(bot: any, telegramId: string, chatId: string | number): Promise<void> {
+export async function sendDailyVocab(bot: any, telegramId: string, chatId: string | number, topic?: string): Promise<void> {
   const lang = getUserLang(telegramId);
   const user = db.prepare('SELECT id, target_score FROM users WHERE telegram_id = ?').get(telegramId) as any;
   if (!user) return;
 
   const band = user.target_score || 7.0;
 
-  await bot.telegram.sendMessage(chatId, lang === 'vi' ? '⏳ Đang tìm kiếm từ vựng IELTS hay cho bạn...' : '⏳ Finding a great IELTS vocabulary for you...');
+  const findingMsg = topic 
+    ? (lang === 'vi' ? `⏳ Đang tìm kiếm từ vựng IELTS chủ đề *${topic}* cho bạn...` : `⏳ Finding a great IELTS vocabulary about *${topic}* for you...`)
+    : (lang === 'vi' ? '⏳ Đang tìm kiếm từ vựng IELTS hay cho bạn...' : '⏳ Finding a great IELTS vocabulary for you...');
+  await bot.telegram.sendMessage(chatId, findingMsg, { parse_mode: 'Markdown' });
+
+  const topicInstruction = topic ? `The vocabulary word MUST be strictly related to the topic: "${topic}".` : '';
 
   const prompt = `
     Generate 1 advanced IELTS vocabulary word suitable for band ${band}.
+    ${topicInstruction}
     Format as JSON:
     {
       "word": "the word",
@@ -101,15 +107,21 @@ export async function sendDailyGrammar(bot: any, telegramId: string, chatId: str
   }
 }
 
-export async function sendDailyPhrase(bot: any, telegramId: string, chatId: string | number): Promise<void> {
+export async function sendDailyPhrase(bot: any, telegramId: string, chatId: string | number, topic?: string): Promise<void> {
   const lang = getUserLang(telegramId);
   const user = db.prepare('SELECT id FROM users WHERE telegram_id = ?').get(telegramId) as any;
   if (!user) return;
 
-  await bot.telegram.sendMessage(chatId, lang === 'vi' ? '⏳ Đang lấy cụm từ/thành ngữ...' : '⏳ Fetching phrase/idiom...');
+  const findingMsg = topic 
+    ? (lang === 'vi' ? `⏳ Đang lấy cụm từ/thành ngữ chủ đề *${topic}*...` : `⏳ Fetching phrase/idiom about *${topic}*...`)
+    : (lang === 'vi' ? '⏳ Đang lấy cụm từ/thành ngữ...' : '⏳ Fetching phrase/idiom...');
+  await bot.telegram.sendMessage(chatId, findingMsg, { parse_mode: 'Markdown' });
+
+  const topicInstruction = topic ? `The phrase/idiom MUST be strictly related to the topic: "${topic}".` : '';
 
   const prompt = `
     Generate 1 useful IELTS phrase, idiom, or phrasal verb.
+    ${topicInstruction}
     Format as JSON:
     {
       "phrase": "the phrase",
@@ -171,7 +183,9 @@ export async function sendDailyReview(bot: any, telegramId: string, chatId: stri
 
 export function registerDailyCommands(bot: any): void {
   bot.command('vocab', async (ctx: Context) => {
-    await sendDailyVocab(bot, ctx.from!.id.toString(), ctx.chat!.id);
+    const text = (ctx.message as any)?.text || '';
+    const topic = text.replace('/vocab', '').trim();
+    await sendDailyVocab(bot, ctx.from!.id.toString(), ctx.chat!.id, topic);
   });
 
   bot.command('grammar', async (ctx: Context) => {
@@ -179,7 +193,9 @@ export function registerDailyCommands(bot: any): void {
   });
 
   bot.command('phrase', async (ctx: Context) => {
-    await sendDailyPhrase(bot, ctx.from!.id.toString(), ctx.chat!.id);
+    const text = (ctx.message as any)?.text || '';
+    const topic = text.replace('/phrase', '').trim();
+    await sendDailyPhrase(bot, ctx.from!.id.toString(), ctx.chat!.id, topic);
   });
 
   bot.command('review', async (ctx: Context) => {
