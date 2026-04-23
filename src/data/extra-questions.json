@@ -1,0 +1,182 @@
+[
+  {
+    "type": "vocabulary",
+    "level": "B2",
+    "question": "Choose the best synonym for 'mitigate':",
+    "question_vi": "Chọn từ đồng nghĩa tốt nhất cho 'mitigate':",
+    "options": ["Worsen", "Alleviate", "Ignore", "Promote"],
+    "answer": 1,
+    "band": 6.5
+  },
+  {
+    "type": "grammar",
+    "level": "C1",
+    "question": "Choose the correct form: 'Scarcely _____ the room when the phone rang.'",
+    "question_vi": "Chọn dạng đúng: 'Scarcely _____ the room when the phone rang.'",
+    "options": ["he had entered", "entered he", "had he entered", "he entered"],
+    "answer": 2,
+    "band": 7.0
+  },
+  {
+    "type": "reading",
+    "level": "C1",
+    "question": "Read: 'The relentless pace of urbanization in developing nations has strained infrastructural capacities, leading to a proliferation of informal settlements.'\n\nWhat is a consequence of rapid urbanization according to the text?",
+    "question_vi": "Đọc: 'The relentless pace of urbanization in developing nations has strained infrastructural capacities, leading to a proliferation of informal settlements.'\n\nHậu quả của đô thị hóa nhanh là gì?",
+    "options": ["Improved infrastructure", "Growth of informal settlements", "Decreased population", "Economic boom"],
+    "answer": 1,
+    "band": 7.0
+  },
+  {
+    "type": "vocabulary",
+    "level": "C2",
+    "question": "The word 'ephemeral' is closest in meaning to:",
+    "question_vi": "Từ 'ephemeral' gần nghĩa nhất với:",
+    "options": ["Everlasting", "Transient", "Complicated", "Beautiful"],
+    "answer": 1,
+    "band": 8.0
+  },
+  {
+    "type": "grammar",
+    "level": "B2",
+    "question": "Identify the error: 'Despite of the rain, we decided to go for a walk.'",
+    "question_vi": "Tìm lỗi sai: 'Despite of the rain, we decided to go for a walk.'",
+    "options": ["Despite of", "the rain", "decided to", "go for"],
+    "answer": 0,
+    "band": 6.0
+  },
+  {
+    "type": "vocabulary",
+    "level": "B1",
+    "question": "What does 'inevitable' mean?",
+    "question_vi": "'Inevitable' có nghĩa là gì?",
+    "options": ["Unavoidable", "Unlikely", "Impossible", "Surprising"],
+    "answer": 0,
+    "band": 5.5
+  },
+  {
+    "type": "grammar",
+    "level": "C1",
+    "question": "Complete the sentence: 'It is imperative that the manager _____ immediately.'",
+    "question_vi": "Hoàn thành câu: 'It is imperative that the manager _____ immediately.'",
+    "options": ["is notified", "be notified", "will be notified", "notifies"],
+    "answer": 1,
+    "band": 7.5
+  },
+  {
+    "type": "reading",
+    "level": "B2",
+    "question": "Read: 'Adopting a plant-based diet can significantly reduce one's carbon footprint, though it requires careful planning to ensure adequate nutritional intake.'\n\nWhat is a potential drawback mentioned?",
+    "question_vi": "Đọc: 'Adopting a plant-based diet can significantly reduce one's carbon footprint, though it requires careful planning to ensure adequate nutritional intake.'\n\nHạn chế tiềm ẩn được nhắc đến là gì?",
+    "options": ["It increases carbon footprint", "It is too expensive", "It requires careful nutritional planning", "It is not sustainable"],
+    "answer": 2,
+    "band": 6.5
+  },
+  {
+    "type": "vocabulary",
+    "level": "C1",
+    "question": "Which word best fits: 'The politician's speech was full of empty _____ but lacked concrete proposals.'",
+    "question_vi": "Từ nào phù hợp nhất: 'The politician's speech was full of empty _____ but lacked concrete proposals.'",
+    "options": ["rhetoric", "logic", "evidence", "promises"],
+    "answer": 0,
+    "band": 7.0
+  },
+  {
+    "type": "grammar",
+    "level": "C2",
+    "question": "Choose the most appropriate: 'But for his intervention, the project _____.'",
+    "question_vi": "Chọn đáp án phù hợp nhất: 'But for his intervention, the project _____.'",
+    "options": ["would fail", "had failed", "would have failed", "will fail"],
+    "answer": 2,
+    "band": 8.5
+  },
+  {
+    "type": "vocabulary",
+    "level": "B2",
+    "question": "The prefix 'pseudo-' as in 'pseudoscience' means:",
+    "question_vi": "Tiền tố 'pseudo-' trong 'pseudoscience' có nghĩa là:",
+    "options": ["Advanced", "Fake", "Real", "Ancient"],
+    "answer": 1,
+    "band": 6.0
+  },
+  {
+    "type": "reading",
+    "level": "C2",
+    "question": "Read: 'The advent of quantum computing poses a paradigm shift, promising exponentially faster processing speeds that could render current cryptographic protocols obsolete.'\n\nWhat is the main implication for cryptography?",
+    "question_vi": "Đọc: 'The advent of quantum computing poses a paradigm shift, promising exponentially faster processing speeds that could render current cryptographic protocols obsolete.'\n\nHệ quả chính đối với mật mã học là gì?",
+    "options": ["It will become more secure", "Current methods may become outdated/useless", "It will be easier to learn", "It will slow down"],
+    "answer": 1,
+    "band": 8.5
+  },
+  {
+    "type": "grammar",
+    "level": "B2",
+    "question": "Choose the correct relative pronoun: 'The company, _____ CEO recently resigned, is facing financial difficulties.'",
+    "question_vi": "Chọn đại từ quan hệ đúng: 'The company, _____ CEO recently resigned, is facing financial difficulties.'",
+    "options": ["which", "who", "whose", "whom"],
+    "answer": 2,
+    "band": 6.0
+  },
+  {
+    "type": "vocabulary",
+    "level": "C1",
+    "question": "Choose the antonym for 'lucrative':",
+    "question_vi": "Chọn từ trái nghĩa với 'lucrative':",
+    "options": ["Profitable", "Unprofitable", "Dangerous", "Exciting"],
+    "answer": 1,
+    "band": 7.0
+  },
+  {
+    "type": "grammar",
+    "level": "C1",
+    "question": "Identify the correct phrasing: 'I'd rather you _____ me before making that decision.'",
+    "question_vi": "Xác định cách diễn đạt đúng: 'I'd rather you _____ me before making that decision.'",
+    "options": ["consult", "consulted", "have consulted", "will consult"],
+    "answer": 1,
+    "band": 7.5
+  },
+  {
+    "type": "reading",
+    "level": "B1",
+    "question": "Read: 'Regular physical activity is known to boost endorphin levels, which naturally elevate mood and reduce feelings of stress.'\n\nHow does exercise affect stress?",
+    "question_vi": "Đọc: 'Regular physical activity is known to boost endorphin levels, which naturally elevate mood and reduce feelings of stress.'\n\nTập thể dục ảnh hưởng đến căng thẳng như thế nào?",
+    "options": ["It increases stress", "It has no effect", "It reduces feelings of stress", "It causes physical pain"],
+    "answer": 2,
+    "band": 5.0
+  },
+  {
+    "type": "vocabulary",
+    "level": "B2",
+    "question": "What does the idiom 'to play devil's advocate' mean?",
+    "question_vi": "Thành ngữ 'to play devil's advocate' có nghĩa là gì?",
+    "options": ["To agree with everyone", "To argue against an idea to test its validity", "To act evilly", "To ignore the problem"],
+    "answer": 1,
+    "band": 6.5
+  },
+  {
+    "type": "grammar",
+    "level": "B1",
+    "question": "Complete the sentence: 'She has been living here _____ five years.'",
+    "question_vi": "Hoàn thành câu: 'She has been living here _____ five years.'",
+    "options": ["since", "for", "during", "while"],
+    "answer": 1,
+    "band": 4.5
+  },
+  {
+    "type": "vocabulary",
+    "level": "C2",
+    "question": "Which of these words describes someone who is stubbornly resistant to authority or control?",
+    "question_vi": "Từ nào sau đây miêu tả một người ngoan cố chống lại thẩm quyền hoặc sự kiểm soát?",
+    "options": ["Compliant", "Recalcitrant", "Obsequious", "Docile"],
+    "answer": 1,
+    "band": 8.5
+  },
+  {
+    "type": "reading",
+    "level": "C1",
+    "question": "Read: 'While initial trials showed promise, subsequent longitudinal studies revealed unexpected anomalies that cast doubt on the drug's long-term efficacy.'\n\nWhat changed the perspective on the drug?",
+    "question_vi": "Đọc: 'While initial trials showed promise, subsequent longitudinal studies revealed unexpected anomalies that cast doubt on the drug's long-term efficacy.'\n\nĐiều gì đã làm thay đổi quan điểm về loại thuốc này?",
+    "options": ["Initial trials", "Longitudinal studies revealing anomalies", "Lack of funding", "Patient testimonials"],
+    "answer": 1,
+    "band": 7.5
+  }
+]

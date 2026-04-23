@@ -1,0 +1,242 @@
+[
+  {
+    "id": 1,
+    "type": "vocabulary",
+    "level": "A2",
+    "question": "Choose the correct word: 'The weather was very _____ yesterday, so we stayed inside.'",
+    "question_vi": "Chọn từ đúng: 'The weather was very _____ yesterday, so we stayed inside.'",
+    "options": ["beautiful", "terrible", "slowly", "quietly"],
+    "answer": 1,
+    "band": 4.0
+  },
+  {
+    "id": 2,
+    "type": "vocabulary",
+    "level": "B1",
+    "question": "What does 'postpone' mean?",
+    "question_vi": "'Postpone' có nghĩa là gì?",
+    "options": ["Cancel completely", "Delay to a later time", "Start immediately", "Forget about"],
+    "answer": 1,
+    "band": 5.0
+  },
+  {
+    "id": 3,
+    "type": "grammar",
+    "level": "A2",
+    "question": "Choose the correct form: 'She _____ to the office every day.'",
+    "question_vi": "Chọn dạng đúng: 'She _____ to the office every day.'",
+    "options": ["go", "goes", "going", "gone"],
+    "answer": 1,
+    "band": 4.0
+  },
+  {
+    "id": 4,
+    "type": "grammar",
+    "level": "B1",
+    "question": "Choose the correct sentence:",
+    "question_vi": "Chọn câu đúng:",
+    "options": [
+      "If I will have time, I will help you.",
+      "If I have time, I will help you.",
+      "If I had time, I will help you.",
+      "If I have time, I would help you."
+    ],
+    "answer": 1,
+    "band": 5.0
+  },
+  {
+    "id": 5,
+    "type": "vocabulary",
+    "level": "B1",
+    "question": "The word 'unprecedented' means something that has:",
+    "question_vi": "Từ 'unprecedented' có nghĩa là điều gì đó:",
+    "options": [
+      "Happened before",
+      "Never happened before",
+      "Been predicted",
+      "Been prevented"
+    ],
+    "answer": 1,
+    "band": 5.5
+  },
+  {
+    "id": 6,
+    "type": "grammar",
+    "level": "B2",
+    "question": "Choose the correct form: 'By the time he arrives, we _____ dinner.'",
+    "question_vi": "Chọn dạng đúng: 'By the time he arrives, we _____ dinner.'",
+    "options": ["finish", "will finish", "will have finished", "are finishing"],
+    "answer": 2,
+    "band": 6.0
+  },
+  {
+    "id": 7,
+    "type": "vocabulary",
+    "level": "B2",
+    "question": "Choose the best synonym for 'meticulous':",
+    "question_vi": "Chọn từ đồng nghĩa tốt nhất cho 'meticulous':",
+    "options": ["Careless", "Thorough", "Quick", "Simple"],
+    "answer": 1,
+    "band": 6.0
+  },
+  {
+    "id": 8,
+    "type": "reading",
+    "level": "B2",
+    "question": "Read: 'Despite the economic downturn, the company managed to maintain its profitability through cost-cutting measures and diversification of its product line.'\n\nWhat helped the company stay profitable?",
+    "question_vi": "Đọc: 'Despite the economic downturn, the company managed to maintain its profitability through cost-cutting measures and diversification of its product line.'\n\nĐiều gì giúp công ty duy trì lợi nhuận?",
+    "options": [
+      "Increasing prices",
+      "Reducing costs and expanding products",
+      "Hiring more employees",
+      "Borrowing money"
+    ],
+    "answer": 1,
+    "band": 6.0
+  },
+  {
+    "id": 9,
+    "type": "grammar",
+    "level": "B2",
+    "question": "Choose the correct form: 'Not only _____ the exam, but she also got the highest score.'",
+    "question_vi": "Chọn dạng đúng: 'Not only _____ the exam, but she also got the highest score.'",
+    "options": ["she passed", "did she pass", "she did pass", "passed she"],
+    "answer": 1,
+    "band": 6.5
+  },
+  {
+    "id": 10,
+    "type": "vocabulary",
+    "level": "B2",
+    "question": "What does 'ubiquitous' mean?",
+    "question_vi": "'Ubiquitous' có nghĩa là gì?",
+    "options": [
+      "Very rare",
+      "Found everywhere",
+      "Extremely dangerous",
+      "Completely unknown"
+    ],
+    "answer": 1,
+    "band": 6.5
+  },
+  {
+    "id": 11,
+    "type": "reading",
+    "level": "C1",
+    "question": "Read: 'The proliferation of misinformation on social media platforms has prompted governments worldwide to consider regulatory frameworks. Critics argue that such regulations could infringe on freedom of speech, while proponents contend that unchecked misinformation poses a greater threat to democratic societies.'\n\nWhat is the author's tone?",
+    "question_vi": "Đọc: 'The proliferation of misinformation on social media platforms has prompted governments worldwide to consider regulatory frameworks. Critics argue that such regulations could infringe on freedom of speech, while proponents contend that unchecked misinformation poses a greater threat to democratic societies.'\n\nGiọng văn của tác giả là gì?",
+    "options": ["Biased toward regulation", "Neutral and balanced", "Against regulation", "Humorous"],
+    "answer": 1,
+    "band": 7.0
+  },
+  {
+    "id": 12,
+    "type": "grammar",
+    "level": "C1",
+    "question": "Choose the correct form: 'Had the government _____ earlier, the crisis could have been averted.'",
+    "question_vi": "Chọn dạng đúng: 'Had the government _____ earlier, the crisis could have been averted.'",
+    "options": ["act", "acted", "acting", "to act"],
+    "answer": 1,
+    "band": 7.0
+  },
+  {
+    "id": 13,
+    "type": "vocabulary",
+    "level": "C1",
+    "question": "The word 'exacerbate' is closest in meaning to:",
+    "question_vi": "Từ 'exacerbate' gần nghĩa nhất với:",
+    "options": ["Improve", "Worsen", "Explain", "Resolve"],
+    "answer": 1,
+    "band": 7.0
+  },
+  {
+    "id": 14,
+    "type": "reading",
+    "level": "C1",
+    "question": "Read: 'While renewable energy sources are often lauded as the panacea for climate change, the intermittent nature of solar and wind power necessitates significant investment in energy storage infrastructure to ensure grid stability.'\n\nThe author suggests that renewable energy:",
+    "question_vi": "Đọc: 'While renewable energy sources are often lauded as the panacea for climate change, the intermittent nature of solar and wind power necessitates significant investment in energy storage infrastructure to ensure grid stability.'\n\nTác giả gợi ý rằng năng lượng tái tạo:",
+    "options": [
+      "Is a complete solution to climate change",
+      "Has limitations that need addressing",
+      "Should be abandoned",
+      "Is too expensive to implement"
+    ],
+    "answer": 1,
+    "band": 7.0
+  },
+  {
+    "id": 15,
+    "type": "grammar",
+    "level": "C1",
+    "question": "Identify the error: 'The data suggests that students who are exposed to bilingual education performs better in cognitive tasks.'",
+    "question_vi": "Tìm lỗi sai: 'The data suggests that students who are exposed to bilingual education performs better in cognitive tasks.'",
+    "options": [
+      "'suggests' should be 'suggest'",
+      "'performs' should be 'perform'",
+      "'are exposed' should be 'exposed'",
+      "'better' should be 'best'"
+    ],
+    "answer": 1,
+    "band": 7.0
+  },
+  {
+    "id": 16,
+    "type": "vocabulary",
+    "level": "C1",
+    "question": "Choose the word that best completes: 'The research findings were _____, requiring further investigation to draw definitive conclusions.'",
+    "question_vi": "Chọn từ phù hợp nhất: 'The research findings were _____, requiring further investigation to draw definitive conclusions.'",
+    "options": ["conclusive", "inconclusive", "inclusive", "exclusive"],
+    "answer": 1,
+    "band": 7.5
+  },
+  {
+    "id": 17,
+    "type": "reading",
+    "level": "C1",
+    "question": "Read: 'The notion that artificial intelligence will inevitably supplant human workers is an oversimplification. While AI excels at routine, data-intensive tasks, it lacks the nuanced judgment, creativity, and emotional intelligence that many professions demand.'\n\nThe author's main argument is that:",
+    "question_vi": "Đọc: 'The notion that artificial intelligence will inevitably supplant human workers is an oversimplification. While AI excels at routine, data-intensive tasks, it lacks the nuanced judgment, creativity, and emotional intelligence that many professions demand.'\n\nLuận điểm chính của tác giả là:",
+    "options": [
+      "AI will definitely replace all human workers",
+      "AI cannot do any tasks better than humans",
+      "The impact of AI on employment is more complex than often portrayed",
+      "Humans should not use AI at all"
+    ],
+    "answer": 2,
+    "band": 7.5
+  },
+  {
+    "id": 18,
+    "type": "grammar",
+    "level": "C2",
+    "question": "Choose the most appropriate: 'The committee _____ unable to reach a consensus, so the decision was deferred to the next meeting.'",
+    "question_vi": "Chọn đáp án phù hợp nhất: 'The committee _____ unable to reach a consensus, so the decision was deferred.'",
+    "options": ["was", "were", "has been", "being"],
+    "answer": 1,
+    "band": 8.0
+  },
+  {
+    "id": 19,
+    "type": "vocabulary",
+    "level": "C2",
+    "question": "'The professor's lecture was so _____ that even the most attentive students struggled to follow.' Choose the best word:",
+    "question_vi": "Chọn từ phù hợp nhất:",
+    "options": ["abstruse", "obvious", "simple", "entertaining"],
+    "answer": 0,
+    "band": 8.0
+  },
+  {
+    "id": 20,
+    "type": "reading",
+    "level": "C2",
+    "question": "Read: 'The paradox of contemporary education lies in its simultaneous pursuit of standardization and individualization. Assessment frameworks predicated on uniform benchmarks inherently conflict with pedagogical approaches that advocate for differentiated instruction tailored to diverse learning modalities.'\n\nThe passage implies that:",
+    "question_vi": "Đọc: 'The paradox of contemporary education lies in its simultaneous pursuit of standardization and individualization. Assessment frameworks predicated on uniform benchmarks inherently conflict with pedagogical approaches that advocate for differentiated instruction tailored to diverse learning modalities.'\n\nĐoạn văn ngụ ý rằng:",
+    "options": [
+      "Standardized testing is always beneficial",
+      "There is a fundamental tension in modern education",
+      "Individualized instruction is impossible",
+      "All students learn the same way"
+    ],
+    "answer": 1,
+    "band": 8.5
+  }
+]
