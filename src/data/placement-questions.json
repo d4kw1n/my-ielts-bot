@@ -219,7 +219,7 @@
     "type": "vocabulary",
     "level": "C2",
     "question": "'The professor's lecture was so _____ that even the most attentive students struggled to follow.' Choose the best word:",
-    "question_vi": "Chọn từ phù hợp nhất:",
+    "question_vi": "Chọn từ phù hợp nhất: 'The professor's lecture was so _____ that even the most attentive students struggled to follow.'",
     "options": ["abstruse", "obvious", "simple", "entertaining"],
     "answer": 0,
     "band": 8.0

@@ -141,13 +141,11 @@ export function initializeDatabase(): void {
       logger.info('Seeded resources successfully');
     }
 
-    // Seed question bank if empty
-    const qCount = db.prepare('SELECT COUNT(*) as cnt FROM question_bank').get() as any;
-    if (qCount.cnt === 0) {
-      const { seedQuestions } = require('../data/seed');
-      seedQuestions();
-      logger.info('Seeded questions successfully');
-    }
+    // Always refresh question bank to pick up data fixes
+    const { seedQuestions } = require('../data/seed');
+    db.prepare('DELETE FROM question_bank').run();
+    seedQuestions();
+    logger.info('Refreshed question bank successfully');
 
     logger.info('✅ Database initialized successfully');
   } catch (error) {
