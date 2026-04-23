@@ -114,11 +114,8 @@ const migrations = [
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `,
-  // Version 2: SRS + Writing Practice
+  // Version 2: Writing Practice (column additions moved to safeAddColumn)
   `
-    ALTER TABLE learned_items ADD COLUMN next_review_date TEXT;
-    ALTER TABLE learned_items ADD COLUMN mastery_level INTEGER DEFAULT 0;
-
     CREATE TABLE IF NOT EXISTS writing_submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -137,10 +134,7 @@ const migrations = [
   `,
   // Version 3: Question bank enrichment - add source tracking and dedup
   `
-    ALTER TABLE question_bank ADD COLUMN created_by TEXT DEFAULT 'manual';
-    ALTER TABLE question_bank ADD COLUMN source_url TEXT;
-    ALTER TABLE question_bank ADD COLUMN content_hash TEXT;
-    ALTER TABLE question_bank ADD COLUMN topic TEXT;
+    SELECT 1;
   `,
   // Version 4: Mistake tracking
   `
@@ -156,6 +150,22 @@ const migrations = [
     );
   `
 ];
+
+// Helper: safely add column if it doesn't exist (SQLite has no ADD COLUMN IF NOT EXISTS)
+function safeAddColumn(table: string, column: string, type: string, defaultVal?: string): void {
+  try {
+    const cols = db.pragma(`table_info(${table})`) as any[];
+    const exists = cols.some((c: any) => c.name === column);
+    if (!exists) {
+      const sql = defaultVal
+        ? `ALTER TABLE ${table} ADD COLUMN ${column} ${type} DEFAULT ${defaultVal}`
+        : `ALTER TABLE ${table} ADD COLUMN ${column} ${type}`;
+      db.exec(sql);
+    }
+  } catch {
+    // Table might not exist yet — skip silently
+  }
+}
 
 export function initializeDatabase(): void {
   try {
@@ -175,6 +185,14 @@ export function initializeDatabase(): void {
       logger.info(`Successfully migrated database to version ${currentVersion}`);
     }
 
+    // Idempotent column additions (safe across any DB state)
+    safeAddColumn('learned_items', 'next_review_date', 'TEXT');
+    safeAddColumn('learned_items', 'mastery_level', 'INTEGER', '0');
+    safeAddColumn('question_bank', 'created_by', 'TEXT', "'manual'");
+    safeAddColumn('question_bank', 'source_url', 'TEXT');
+    safeAddColumn('question_bank', 'content_hash', 'TEXT');
+    safeAddColumn('question_bank', 'topic', 'TEXT');
+
     // Seed resources if empty
     const count = db.prepare('SELECT COUNT(*) as cnt FROM resources').get() as any;
     if (count.cnt === 0) {
@@ -182,11 +200,13 @@ export function initializeDatabase(): void {
       logger.info('Seeded resources successfully');
     }
 
-    // Always refresh question bank to pick up data fixes
-    const { seedQuestions } = require('../data/seed');
-    db.prepare('DELETE FROM question_bank').run();
-    seedQuestions();
-    logger.info('Refreshed question bank successfully');
+    // Seed questions if empty (don't wipe existing data)
+    const qCount = db.prepare('SELECT COUNT(*) as cnt FROM question_bank').get() as any;
+    if (qCount.cnt === 0) {
+      const { seedQuestions } = require('../data/seed');
+      seedQuestions();
+      logger.info('Seeded question bank successfully');
+    }
 
     logger.info('✅ Database initialized successfully');
   } catch (error) {
@@ -195,3 +215,4 @@ export function initializeDatabase(): void {
     process.exit(1);
   }
 }
+
