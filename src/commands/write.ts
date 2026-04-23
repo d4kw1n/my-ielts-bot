@@ -90,9 +90,15 @@ export function registerWriteCommand(bot: any): void {
     }
 
     const essay = (ctx.message as any)?.text || '';
+    
+    // Skip if it looks like a command
+    if (essay.startsWith('/')) {
+      return next();
+    }
+
     const wordCount = essay.split(/\s+/).filter((w: string) => w.length > 0).length;
 
-    if (wordCount < 50) {
+    if (wordCount < 80) {
       return next(); // Too short, probably not an essay
     }
 

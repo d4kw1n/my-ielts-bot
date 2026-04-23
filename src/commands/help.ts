@@ -47,6 +47,11 @@ export function registerHelpCommand(bot: any): void {
 /history - Xem lịch sử các bài thi thử
 /progress - Vẽ biểu đồ đánh giá tiến trình học tập
 
+🔹 **Phân tích & Quản lý**
+/weakness - 🧠 Phân tích điểm yếu cá nhân
+/mistakes - 📊 Xem lỗi sai lặp lại
+/bank - 📦 Xem thống kê kho câu hỏi
+
 🔹 **Lịch trình**
 /schedule - Lên lịch thi thử với Notion Calendar
 /next_test - Xem ngày thi thử sắp tới
@@ -86,6 +91,11 @@ export function registerHelpCommand(bot: any): void {
 /score <L> <R> <W> <S> - Log mock test scores (e.g., /score 6.5 6.0 6.0 6.5)
 /history - View mock test history
 /progress - View progress reports and charts
+
+🔹 **Analysis & Management**
+/weakness - 🧠 Personal weakness analysis
+/mistakes - 📊 View repeated errors
+/bank - 📦 Question bank stats
 
 🔹 **Scheduling**
 /schedule - Schedule a mock test with Notion Calendar
