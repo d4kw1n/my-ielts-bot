@@ -25,12 +25,18 @@ export async function createNotionEvent(title: string, date: string, description
         Date: {
           date: { start: date },
         },
-        ...(description ? {
-          Description: {
-            rich_text: [{ text: { content: description } }],
-          },
-        } : {}),
       },
+      ...(description ? {
+        children: [
+          {
+            object: 'block',
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [{ type: 'text', text: { content: description } }],
+            },
+          },
+        ],
+      } : {}),
     });
     return response.id;
   } catch (error) {
@@ -45,22 +51,20 @@ export async function getNotionEvents(startDate: string, endDate: string): Promi
 
   try {
     // Use pages.list or search since databases.query may not be available
-    const response = await (notion as any).databases.query({
-      database_id: config.notionDatabaseId,
+    const response = await (notion as any).search({
       filter: {
-        and: [
-          { property: 'Date', date: { on_or_after: startDate } },
-          { property: 'Date', date: { on_or_before: endDate } },
-        ],
+        value: 'page',
+        property: 'object'
       },
-      sorts: [{ property: 'Date', direction: 'ascending' }],
     });
 
-    return response.results.map((page: any) => ({
-      id: page.id,
-      title: page.properties?.Name?.title?.[0]?.text?.content || '',
-      date: page.properties?.Date?.date?.start || '',
-    }));
+    return response.results
+      .map((page: any) => ({
+        id: page.id,
+        title: page.properties?.Name?.title?.[0]?.text?.content || '',
+        date: page.properties?.Date?.date?.start || '',
+      }))
+      .filter((evt: any) => evt.date >= startDate && evt.date <= endDate);
   } catch (error) {
     console.error('Notion query error:', error);
     return [];
