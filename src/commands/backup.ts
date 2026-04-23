@@ -48,11 +48,21 @@ export function registerBackupCommand(bot: any): void {
 
       await ctx.telegram.editMessageText(ctx.chat!.id, msg.message_id, undefined, lang === 'vi' ? '☁️ Đang upload lên Notion...' : '☁️ Uploading to Notion...');
 
-      // 3. Create a new page in Notion
+      // 3. Auto-detect the title property name of the Notion database
+      let titleProp = 'Name'; // default fallback
+      try {
+        const dbInfo = await notion.databases.retrieve({ database_id: config.notionDatabaseId });
+        const props = (dbInfo as any).properties || {};
+        for (const [key, val] of Object.entries(props)) {
+          if ((val as any).type === 'title') { titleProp = key; break; }
+        }
+      } catch { /* use default */ }
+
+      // 4. Create a new page in Notion
       const page = await notion.pages.create({
         parent: { database_id: config.notionDatabaseId },
         properties: {
-          Name: {
+          [titleProp]: {
             title: [
               { text: { content: `📦 System Backup - ${new Date().toISOString().split('T')[0]}` } }
             ]
