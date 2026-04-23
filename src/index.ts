@@ -65,6 +65,7 @@ async function main() {
     { command: 'placement', description: '🧪 Làm bài test đánh giá trình độ' },
     { command: 'log', description: '⏱️ Ghi nhận thời gian học (VD: /log listening 30)' },
     { command: 'today', description: '📅 Báo cáo học tập hôm nay' },
+    { command: 'streak', description: '🔥 Xem chuỗi kỷ luật hiện tại' },
     { command: 'score', description: '📝 Nhập điểm thi thử' },
     { command: 'progress', description: '📊 Xem biểu đồ tiến trình' },
     { command: 'video', description: '📺 AI gợi ý video luyện nghe' },
