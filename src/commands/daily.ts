@@ -185,7 +185,27 @@ export function registerDailyCommands(bot: any): void {
   bot.command('vocab', async (ctx: Context) => {
     const text = (ctx.message as any)?.text || '';
     const topic = text.replace('/vocab', '').trim();
+    
+    if (!topic) {
+      const lang = getUserLang(ctx.from!.id.toString());
+      const msg = lang === 'vi' ? 'Lựa chọn chủ đề để học từ vựng hôm nay:' : "Select a topic for today's vocabulary:";
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🌍 Environment', 'vocab_topic_Environment'), Markup.button.callback('💻 Technology', 'vocab_topic_Technology')],
+        [Markup.button.callback('📚 Education', 'vocab_topic_Education'), Markup.button.callback('💼 Work', 'vocab_topic_Work')],
+        [Markup.button.callback('🏥 Health', 'vocab_topic_Health'), Markup.button.callback('🎨 Art & Culture', 'vocab_topic_Art')],
+        [Markup.button.callback('🎲 Random', 'vocab_topic_Random')]
+      ]);
+      await ctx.reply(msg, keyboard);
+      return;
+    }
     await sendDailyVocab(bot, ctx.from!.id.toString(), ctx.chat!.id, topic);
+  });
+
+  bot.action(/vocab_topic_(.+)/, async (ctx: Context) => {
+    await ctx.answerCbQuery();
+    const topic = (ctx as any).match[1];
+    const actualTopic = topic === 'Random' ? undefined : topic;
+    await sendDailyVocab(bot, ctx.from!.id.toString(), ctx.chat!.id, actualTopic);
   });
 
   bot.command('grammar', async (ctx: Context) => {
@@ -195,7 +215,26 @@ export function registerDailyCommands(bot: any): void {
   bot.command('phrase', async (ctx: Context) => {
     const text = (ctx.message as any)?.text || '';
     const topic = text.replace('/phrase', '').trim();
+    
+    if (!topic) {
+      const lang = getUserLang(ctx.from!.id.toString());
+      const msg = lang === 'vi' ? 'Lựa chọn ngữ cảnh cho cụm từ/idiom:' : 'Select a context for the phrase/idiom:';
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🗣 Speaking Part 1', 'phrase_topic_Speaking Part 1'), Markup.button.callback('🎤 Speaking Part 3', 'phrase_topic_Speaking Part 3')],
+        [Markup.button.callback('✍️ Writing Task 2', 'phrase_topic_Writing Task 2'), Markup.button.callback('✉️ Formal Letter', 'phrase_topic_Formal Letter')],
+        [Markup.button.callback('🎲 Random', 'phrase_topic_Random')]
+      ]);
+      await ctx.reply(msg, keyboard);
+      return;
+    }
     await sendDailyPhrase(bot, ctx.from!.id.toString(), ctx.chat!.id, topic);
+  });
+
+  bot.action(/phrase_topic_(.+)/, async (ctx: Context) => {
+    await ctx.answerCbQuery();
+    const topic = (ctx as any).match[1];
+    const actualTopic = topic === 'Random' ? undefined : topic;
+    await sendDailyPhrase(bot, ctx.from!.id.toString(), ctx.chat!.id, actualTopic);
   });
 
   bot.command('review', async (ctx: Context) => {
