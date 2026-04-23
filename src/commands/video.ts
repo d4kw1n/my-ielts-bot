@@ -135,11 +135,11 @@ Schema for each object:
 
     videos.forEach((vid: any, idx: number) => {
       text += `📺 *${vid.title}*\n🗣️ *Kênh:* ${vid.channel}\n📝 *Tại sao:* ${vid.reason}\n\n`;
-      const ytUrl = \`https://www.youtube.com/results?search_query=\${vid.search_query}\`;
-      buttons.push([Markup.button.url(lang === 'vi' ? \`▶️ Xem Video \${isList ? idx + 1 : ''}\` : \`▶️ Watch Video \${isList ? idx + 1 : ''}\`, ytUrl)]);
+      const ytUrl = `https://www.youtube.com/results?search_query=${vid.search_query}`;
+      buttons.push([Markup.button.url(lang === 'vi' ? `▶️ Xem Video ${isList ? idx + 1 : ''}` : `▶️ Watch Video ${isList ? idx + 1 : ''}`, ytUrl)]);
     });
 
-    text += \`━━━━━━━━━━━━━━━━━━━━━━\n💡 \${lang === 'vi' ? 'Sau khi xem xong, dùng /log listening nhé!' : 'After watching, use /log listening!'}\`;
+    text += `━━━━━━━━━━━━━━━━━━━━━━\n💡 ${lang === 'vi' ? 'Sau khi xem xong, dùng /log listening nhé!' : 'After watching, use /log listening!'}`;
 
     await ctx.telegram.editMessageText(ctx.chat!.id, (waitMsg as any).message_id, undefined, text, {
       parse_mode: 'Markdown',
