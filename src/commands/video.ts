@@ -3,6 +3,8 @@ import { askAi } from '../services/ai_service';
 import db from '../database/db';
 import { Lang } from '../utils/i18n';
 
+import ytSearch from 'youtube-search-api';
+
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
   return user?.language || 'vi';
@@ -115,8 +117,7 @@ Schema for each object:
 {
   "title": "Real title of the video",
   "channel": "YouTube Channel (e.g. TED-Ed)",
-  "reason": "Why watch this (in ${lang === 'vi' ? 'Vietnamese' : 'English'})",
-  "search_query": "URL encoded search query of title and channel, e.g. how+internet+works+crash+course"
+  "reason": "Why watch this (in ${lang === 'vi' ? 'Vietnamese' : 'English'})"
 }`;
 
   const systemPrompt = "You are an AI that outputs pure JSON arrays only.";
@@ -133,11 +134,23 @@ Schema for each object:
     let text = `${lang === 'vi' ? '🎯 *GỢI Ý VIDEO LUYỆN NGHE*' : '🎯 *VIDEO RECOMMENDATION*'}\n━━━━━━━━━━━━━━━━━━━━━━\n`;
     const buttons: any[] = [];
 
-    videos.forEach((vid: any, idx: number) => {
+    for (let idx = 0; idx < videos.length; idx++) {
+      const vid = videos[idx];
       text += `📺 *${vid.title}*\n🗣️ *Kênh:* ${vid.channel}\n📝 *Tại sao:* ${vid.reason}\n\n`;
-      const ytUrl = `https://www.youtube.com/results?search_query=${vid.search_query}`;
+      
+      // Fetch direct youtube link
+      let ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(vid.title + ' ' + vid.channel)}`;
+      try {
+        const result = await ytSearch.GetListByKeyword(`${vid.title} ${vid.channel}`, false, 1);
+        if (result && result.items && result.items.length > 0) {
+          ytUrl = `https://www.youtube.com/watch?v=${result.items[0].id}`;
+        }
+      } catch (err) {
+        console.error('YouTube search error:', err);
+      }
+
       buttons.push([Markup.button.url(lang === 'vi' ? `▶️ Xem Video ${isList ? idx + 1 : ''}` : `▶️ Watch Video ${isList ? idx + 1 : ''}`, ytUrl)]);
-    });
+    }
 
     text += `━━━━━━━━━━━━━━━━━━━━━━\n💡 ${lang === 'vi' ? 'Sau khi xem xong, dùng /log listening nhé!' : 'After watching, use /log listening!'}`;
 
