@@ -60,6 +60,38 @@ export function setupScheduler(bot: Telegraf): void {
     }
   });
 
+  // Auto-send Vocabulary at 09:00
+  cron.schedule('0 9 * * *', async () => {
+    const users = db.prepare('SELECT telegram_id FROM users WHERE reminder_enabled = 1').all() as any[];
+    const { sendDailyVocab } = await import('../commands/daily');
+    for (const user of users) {
+      await sendDailyVocab(bot, user.telegram_id, user.telegram_id);
+    }
+  });
+
+  // Auto-send Grammar/Phrase at 15:00
+  cron.schedule('0 15 * * *', async () => {
+    const users = db.prepare('SELECT telegram_id FROM users WHERE reminder_enabled = 1').all() as any[];
+    const { sendDailyGrammar, sendDailyPhrase } = await import('../commands/daily');
+    const isGrammarDay = new Date().getDay() % 2 === 0; // Alternate days
+    for (const user of users) {
+      if (isGrammarDay) {
+        await sendDailyGrammar(bot, user.telegram_id, user.telegram_id);
+      } else {
+        await sendDailyPhrase(bot, user.telegram_id, user.telegram_id);
+      }
+    }
+  });
+
+  // Auto-send Review at 21:00
+  cron.schedule('0 21 * * *', async () => {
+    const users = db.prepare('SELECT telegram_id FROM users WHERE reminder_enabled = 1').all() as any[];
+    const { sendDailyReview } = await import('../commands/daily');
+    for (const user of users) {
+      await sendDailyReview(bot, user.telegram_id, user.telegram_id);
+    }
+  });
+
   // Test reminder - check daily at 09:00
   cron.schedule('0 9 * * *', () => {
     const tomorrow = new Date();
