@@ -17,6 +17,13 @@ import { registerHelpCommand } from './commands/help';
 import { registerImportCommand } from './commands/import';
 import { registerBackupCommand } from './commands/backup';
 import { setupScheduler } from './services/scheduler';
+import { logger } from './utils/logger';
+
+// Override global console
+console.log = (...args) => logger.info(args.join(' '));
+console.error = (...args) => logger.error(args.join(' '));
+console.warn = (...args) => logger.warn(args.join(' '));
+console.info = (...args) => logger.info(args.join(' '));
 
 async function main() {
   console.log('🚀 Starting IELTS Study Tracker Bot...');
