@@ -14,6 +14,26 @@ function saveLearnedItem(userId: number, type: string, word: string, meaning: st
     INSERT INTO learned_items (user_id, type, word, meaning, example, learned_date)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(userId, type, word, meaning, example, today);
+
+  // Auto-update study streak when learning new items
+  updateStudyStreak(userId);
+}
+
+function updateStudyStreak(userId: number): void {
+  const user = db.prepare('SELECT study_streak, last_study_date FROM users WHERE id = ?').get(userId) as any;
+  if (!user) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  if (user.last_study_date === today) return; // Already updated today
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  const newStreak = user.last_study_date === yesterdayStr ? (user.study_streak || 0) + 1 : 1;
+
+  db.prepare(`UPDATE users SET study_streak = ?, last_study_date = ?, updated_at = datetime('now') WHERE id = ?`)
+    .run(newStreak, today, userId);
 }
 
 function getCurrentLearningBand(user: any): number {
@@ -167,6 +187,13 @@ export async function sendDailyPhrase(bot: any, telegramId: string, chatId: stri
   }
 }
 
+// In-memory state for review quizzes
+const activeReviewQuizzes = new Map<string, {
+  items: any[];
+  currentIndex: number;
+  correctCount: number;
+}>();
+
 export async function sendDailyReview(bot: any, telegramId: string, chatId: string | number): Promise<void> {
   const lang = getUserLang(telegramId);
   const user = db.prepare('SELECT id FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -182,17 +209,54 @@ export async function sendDailyReview(bot: any, telegramId: string, chatId: stri
     return;
   }
 
-  let msg = lang === 'vi' 
-    ? `🧠 *ÔN TẬP CUỐI NGÀY*\n━━━━━━━━━━━━━━━━━━━━━━\nHôm nay bạn đã học ${items.length} kiến thức mới:\n\n`
-    : `🧠 *END OF DAY REVIEW*\n━━━━━━━━━━━━━━━━━━━━━━\nYou learned ${items.length} new items today:\n\n`;
+  // Start interactive review quiz
+  activeReviewQuizzes.set(telegramId, { items, currentIndex: 0, correctCount: 0 });
 
-  for (let i = 0; i < items.length; i++) {
-    const icon = items[i].type === 'vocab' ? '🎯' : items[i].type === 'grammar' ? '📌' : '🔥';
-    msg += `${i + 1}. ${icon} *${items[i].word}*\n   📖 ${items[i].meaning}\n`;
+  const intro = lang === 'vi'
+    ? `🧠 *ÔN TẬP CUỐI NGÀY*\n━━━━━━━━━━━━━━━━━━━━━━\nHôm nay bạn đã học *${items.length}* kiến thức mới.\nHãy trả lời đúng nghĩa của chúng nhé!`
+    : `🧠 *END OF DAY REVIEW*\n━━━━━━━━━━━━━━━━━━━━━━\nYou learned *${items.length}* new items today.\nLet's quiz your memory!`;
+
+  await bot.telegram.sendMessage(chatId, intro, { parse_mode: 'Markdown' });
+  await sendReviewQuestion(bot, telegramId, chatId);
+}
+
+async function sendReviewQuestion(bot: any, telegramId: string, chatId: string | number): Promise<void> {
+  const lang = getUserLang(telegramId);
+  const quiz = activeReviewQuizzes.get(telegramId);
+  if (!quiz) return;
+
+  const item = quiz.items[quiz.currentIndex];
+  const icon = item.type === 'vocab' ? '🎯' : item.type === 'grammar' ? '📌' : '🔥';
+
+  // Generate 3 wrong options using AI, or use simple fallback
+  const correctAnswer = item.meaning;
+  const options = [correctAnswer];
+  
+  // Get other learned items as distractors
+  const otherItems = db.prepare('SELECT meaning FROM learned_items WHERE user_id = (SELECT id FROM users WHERE telegram_id = ?) AND meaning != ? ORDER BY RANDOM() LIMIT 3')
+    .all(telegramId, correctAnswer) as any[];
+  
+  for (const other of otherItems) {
+    if (options.length < 4) options.push(other.meaning);
   }
+  
+  // Pad with generic wrong answers if not enough distractors
+  const fallbacks = ['(không có nghĩa phù hợp)', 'to make worse', 'a type of animal', 'very quickly'];
+  while (options.length < 4) {
+    options.push(fallbacks[options.length - 1]);
+  }
+  
+  // Shuffle options
+  const shuffled = options.sort(() => Math.random() - 0.5);
+  const correctIndex = shuffled.indexOf(correctAnswer);
 
-  msg += lang === 'vi' ? '\n💪 Hãy cố gắng nhẩm lại ví dụ của chúng trước khi đi ngủ nhé!' : '\n💪 Try to recall their examples before going to sleep!';
-  await bot.telegram.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
+  const msg = `${icon} ${lang === 'vi' ? 'Câu' : 'Q'} ${quiz.currentIndex + 1}/${quiz.items.length}\n\n*${item.word}* ${lang === 'vi' ? 'có nghĩa là gì?' : 'means what?'}`;
+
+  const buttons = shuffled.map((opt: string, i: number) =>
+    [Markup.button.callback(`${String.fromCharCode(65 + i)}. ${opt.substring(0, 50)}`, `review_${quiz.currentIndex}_${i}_${correctIndex}`)]
+  );
+
+  await bot.telegram.sendMessage(chatId, msg, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
 }
 
 export function registerDailyCommands(bot: any): void {
@@ -253,5 +317,45 @@ export function registerDailyCommands(bot: any): void {
 
   bot.command('review', async (ctx: Context) => {
     await sendDailyReview(bot, ctx.from!.id.toString(), ctx.chat!.id);
+  });
+
+  // Review quiz answer handler
+  bot.action(/^review_(\d+)_(\d+)_(\d+)$/, async (ctx: Context) => {
+    const telegramId = ctx.from!.id.toString();
+    const lang = getUserLang(telegramId);
+    const match = (ctx as any).match;
+    const qIndex = parseInt(match[1]);
+    const selected = parseInt(match[2]);
+    const correct = parseInt(match[3]);
+
+    const quiz = activeReviewQuizzes.get(telegramId);
+    if (!quiz || qIndex !== quiz.currentIndex) {
+      await ctx.answerCbQuery(lang === 'vi' ? 'Đã hết hạn' : 'Expired');
+      return;
+    }
+
+    const isCorrect = selected === correct;
+    if (isCorrect) quiz.correctCount++;
+    quiz.currentIndex++;
+
+    const item = quiz.items[qIndex];
+    const feedback = isCorrect
+      ? `✅ *${item.word}* = ${item.meaning}`
+      : `❌ *${item.word}* = ${item.meaning}`;
+
+    await ctx.answerCbQuery(isCorrect ? '✅' : '❌');
+
+    if (quiz.currentIndex >= quiz.items.length) {
+      const pct = Math.round((quiz.correctCount / quiz.items.length) * 100);
+      const emoji = pct >= 80 ? '🌟' : pct >= 60 ? '💪' : '📚';
+      const resultMsg = lang === 'vi'
+        ? `${feedback}\n\n━━━━━━━━━━━━━━━━━━━━━━\n📊 *KẾT QUẢ ÔN TẬP:* ${quiz.correctCount}/${quiz.items.length} (${pct}%)\n${emoji} ${pct >= 80 ? 'Xuất sắc! Bạn nhớ rất tốt!' : pct >= 60 ? 'Khá tốt! Cần ôn thêm chút nữa!' : 'Cần ôn tập nhiều hơn!'}\n\n💡 Dùng /vocab để học thêm từ mới!`
+        : `${feedback}\n\n━━━━━━━━━━━━━━━━━━━━━━\n📊 *REVIEW RESULTS:* ${quiz.correctCount}/${quiz.items.length} (${pct}%)\n${emoji} ${pct >= 80 ? 'Excellent memory!' : pct >= 60 ? 'Good, review a bit more!' : 'Need more practice!'}\n\n💡 Use /vocab to learn more!`;
+      await ctx.editMessageText(resultMsg, { parse_mode: 'Markdown' });
+      activeReviewQuizzes.delete(telegramId);
+    } else {
+      await ctx.editMessageText(feedback, { parse_mode: 'Markdown' });
+      await sendReviewQuestion(bot, telegramId, ctx.chat!.id);
+    }
   });
 }

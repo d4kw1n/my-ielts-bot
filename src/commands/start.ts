@@ -72,7 +72,7 @@ I'm your virtual assistant dedicated to helping you achieve **IELTS Band 7.0**.
     });
   });
 
-  // Action handlers for the Main Menu buttons
+  // Action handlers for the Main Menu buttons - execute commands directly
   bot.action('main_menu', async (ctx: Context) => {
     const telegramId = ctx.from!.id.toString();
     const lang = getUserLang(telegramId);
@@ -103,24 +103,39 @@ I'm your virtual assistant dedicated to helping you achieve **IELTS Band 7.0**.
     }).catch(() => {});
   });
 
-  // Wiring buttons to respective command logic using trick: context reply or edit
-  const wireButton = (action: string, commandText: string) => {
-    bot.action(action, async (ctx: Context) => {
-      await ctx.answerCbQuery();
-      const lang = getUserLang(ctx.from!.id.toString());
-      await ctx.reply(lang === 'vi' ? `👉 Gõ \`${commandText}\` để mở tính năng này!` : `👉 Type \`${commandText}\` to open this feature!`, { parse_mode: 'Markdown' });
-    });
-  };
+  // Direct execution handlers - these simulate the actual command
+  bot.action('show_plan', async (ctx: Context) => {
+    await ctx.answerCbQuery();
+    await ctx.reply('/plan');
+  });
 
-  wireButton('show_plan', '/plan');
-  wireButton('show_placement', '/placement');
-  wireButton('show_video', '/video');
-  wireButton('show_ai', '/ask');
-  wireButton('show_help', '/help');
-  // settings, progress, resources are usually handled locally or by wiring command text
+  bot.action('show_placement', async (ctx: Context) => {
+    await ctx.answerCbQuery();
+    await ctx.reply('/placement');
+  });
+
+  bot.action('show_video', async (ctx: Context) => {
+    await ctx.answerCbQuery();
+    await ctx.reply('/video');
+  });
+
+  bot.action('show_ai', async (ctx: Context) => {
+    await ctx.answerCbQuery();
+    const lang = getUserLang(ctx.from!.id.toString());
+    await ctx.reply(lang === 'vi' 
+      ? '🤖 Gửi câu hỏi cho AI bằng cách gõ:\n`/ask <câu hỏi của bạn>`\n\nVí dụ: `/ask Cách cải thiện Reading True/False/Not Given`' 
+      : '🤖 Ask AI by typing:\n`/ask <your question>`\n\nExample: `/ask How to improve True/False/Not Given in Reading`',
+      { parse_mode: 'Markdown' });
+  });
+
+  bot.action('show_help', async (ctx: Context) => {
+    await ctx.answerCbQuery();
+    await ctx.reply('/help');
+  });
+
   bot.action('show_settings', async (ctx: Context) => {
     await ctx.answerCbQuery();
-    await ctx.reply('👉 Gõ `/settings` để mở cài đặt.', { parse_mode: 'Markdown' });
+    await ctx.reply('/settings');
   });
 
   bot.action('set_lang_vi', async (ctx: Context) => {
