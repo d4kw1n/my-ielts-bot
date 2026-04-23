@@ -163,6 +163,18 @@ export function registerTodayPlanCommand(bot: any): void {
 
   bot.action('tp_start_vocab', async (ctx: Context) => {
     await ctx.answerCbQuery();
-    await ctx.reply('/vocab');
+    // Trigger /vocab command via synthetic update
+    const fakeUpdate = {
+      update_id: Date.now(),
+      message: {
+        message_id: Date.now(),
+        from: ctx.from!,
+        chat: { id: ctx.chat!.id, type: ctx.chat!.type },
+        date: Math.floor(Date.now() / 1000),
+        text: '/vocab',
+        entities: [{ offset: 0, length: 6, type: 'bot_command' as const }]
+      }
+    };
+    bot.handleUpdate(fakeUpdate);
   });
 }

@@ -34,6 +34,26 @@ function getMainMenuButtons(lang: Lang) {
   ];
 }
 
+// Helper: trigger a command as if user typed it
+function triggerCommand(bot: any, ctx: Context, command: string) {
+  const chatId = ctx.chat!.id;
+  const fromUser = ctx.from!;
+  // Create a synthetic text message update
+  const fakeUpdate = {
+    update_id: Date.now(),
+    message: {
+      message_id: Date.now(),
+      from: fromUser,
+      chat: { id: chatId, type: ctx.chat!.type },
+      date: Math.floor(Date.now() / 1000),
+      text: command,
+      entities: [{ offset: 0, length: command.split(' ')[0].length, type: 'bot_command' as const }]
+    }
+  };
+  // Process the fake update through the bot's middleware
+  return bot.handleUpdate(fakeUpdate);
+}
+
 export function registerStartCommand(bot: any): void {
   bot.command('start', async (ctx: Context) => {
     const telegramId = ctx.from!.id.toString();
@@ -56,40 +76,34 @@ export function registerStartCommand(bot: any): void {
     const lang = getUserLang(telegramId);
 
     const welcomeMsg = lang === 'vi'
-      ? `👋 Chào mừng **${ctx.from!.first_name || 'bạn'}** đến với **IELTS Buddy**! 🎯
+      ? `👋 Chào mừng ${ctx.from!.first_name || 'bạn'} đến với IELTS Buddy! 🎯
       
 Tôi là trợ lý ảo đồng hành cùng bạn trên con đường chinh phục IELTS.
 
-💡 **Bắt đầu nhanh:**
-1️⃣ Bấm **📋 Kế hoạch hôm nay** để biết hôm nay học gì
+💡 Bắt đầu nhanh:
+1️⃣ Bấm 📋 Kế hoạch hôm nay để biết hôm nay học gì
 2️⃣ Hoặc chọn kỹ năng muốn luyện bên dưới`
-      : `👋 Welcome **${ctx.from!.first_name || 'friend'}** to **IELTS Buddy**! 🎯
+      : `👋 Welcome ${ctx.from!.first_name || 'friend'} to IELTS Buddy! 🎯
       
 I'm your AI tutor dedicated to helping you achieve your IELTS target.
 
-💡 **Quick Start:**
-1️⃣ Press **📋 Today's Plan** to see what to study today
+💡 Quick Start:
+1️⃣ Press 📋 Today's Plan to see what to study today
 2️⃣ Or select a skill to practice below`;
 
-    await ctx.reply(welcomeMsg, { 
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard(getMainMenuButtons(lang))
-    });
+    await ctx.reply(welcomeMsg, Markup.inlineKeyboard(getMainMenuButtons(lang)));
   });
 
   // Main menu action
   bot.action('main_menu', async (ctx: Context) => {
     const lang = getUserLang(ctx.from!.id.toString());
     await ctx.answerCbQuery();
-    const msg = lang === 'vi' ? '🏠 **MENU CHÍNH**\nChọn tính năng:' : '🏠 **MAIN MENU**\nChoose a feature:';
-    await ctx.editMessageText(msg, { 
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard(getMainMenuButtons(lang))
-    }).catch(() => {});
+    const msg = lang === 'vi' ? '🏠 MENU CHÍNH\nChọn tính năng:' : '🏠 MAIN MENU\nChoose a feature:';
+    await ctx.editMessageText(msg, Markup.inlineKeyboard(getMainMenuButtons(lang))).catch(() => {});
   });
 
-  // Simple command triggers — each button triggers the real command
-  const simpleGoActions: Record<string, string> = {
+  // Command triggers — each button EXECUTES the real command via handleUpdate
+  const commandMap: Record<string, string> = {
     'go_today_plan': '/today_plan',
     'go_plan': '/plan',
     'go_vocab': '/vocab',
@@ -104,10 +118,10 @@ I'm your AI tutor dedicated to helping you achieve your IELTS target.
     'go_settings': '/settings',
   };
 
-  for (const [action, command] of Object.entries(simpleGoActions)) {
+  for (const [action, command] of Object.entries(commandMap)) {
     bot.action(action, async (ctx: Context) => {
       await ctx.answerCbQuery();
-      await ctx.reply(command);
+      triggerCommand(bot, ctx, command);
     });
   }
 
@@ -125,7 +139,7 @@ I'm your AI tutor dedicated to helping you achieve your IELTS target.
   for (const [action, command] of Object.entries(legacyActions)) {
     bot.action(action, async (ctx: Context) => {
       await ctx.answerCbQuery();
-      await ctx.reply(command);
+      triggerCommand(bot, ctx, command);
     });
   }
 
@@ -133,9 +147,8 @@ I'm your AI tutor dedicated to helping you achieve your IELTS target.
     await ctx.answerCbQuery();
     const lang = getUserLang(ctx.from!.id.toString());
     await ctx.reply(lang === 'vi' 
-      ? '🤖 Gửi câu hỏi cho AI bằng cách gõ:\n`/ask <câu hỏi của bạn>`\n\nVí dụ: `/ask Cách cải thiện Reading True/False/Not Given`' 
-      : '🤖 Ask AI by typing:\n`/ask <your question>`\n\nExample: `/ask How to improve True/False/Not Given in Reading`',
-      { parse_mode: 'Markdown' });
+      ? '🤖 Gửi câu hỏi cho AI bằng cách gõ:\n/ask <câu hỏi của bạn>\n\nVí dụ: /ask Cách cải thiện Reading True/False/Not Given' 
+      : '🤖 Ask AI by typing:\n/ask <your question>\n\nExample: /ask How to improve True/False/Not Given in Reading');
   });
 
   // Language settings
@@ -153,4 +166,3 @@ I'm your AI tutor dedicated to helping you achieve your IELTS target.
     await ctx.editMessageText(t('language_set', 'en'));
   });
 }
-
