@@ -79,8 +79,8 @@ export function registerTodayPlanCommand(bot: any): void {
     switch (weakestSkill) {
       case 'listening':
         tasks.push({
-          emoji: '🎧', title: 'Watch 1 English video (15 min)', titleVi: 'Xem 1 video tiếng Anh (15 phút)',
-          command: '/video', minutes: 15, skill: 'listening'
+          emoji: '🎧', title: 'Practice listening with Speaking', titleVi: 'Luyện nghe qua Speaking',
+          command: '/speak', minutes: 15, skill: 'listening'
         });
         break;
       case 'reading':

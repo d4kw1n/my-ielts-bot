@@ -3,7 +3,6 @@ import { config } from './config';
 import { initializeDatabase } from './database/schema';
 import { registerStartCommand } from './commands/start';
 import { registerPlanCommand } from './commands/plan';
-import { registerResourcesCommand } from './commands/resources';
 import { registerLogCommand } from './commands/log';
 import { registerScoreCommand } from './commands/score';
 import { registerProgressCommand } from './commands/progress';
@@ -12,7 +11,6 @@ import { registerQuizCommand } from './commands/quiz';
 import { registerScheduleCommand } from './commands/schedule';
 import { registerSettingsCommand } from './commands/settings';
 import { registerAiCommand } from './commands/ai';
-import { registerVideoCommand } from './commands/video';
 import { registerHelpCommand } from './commands/help';
 import { registerImportCommand } from './commands/import';
 import { registerBackupCommand } from './commands/backup';
@@ -20,7 +18,6 @@ import { registerDailyCommands } from './commands/daily';
 import { registerWriteCommand } from './commands/write';
 import { registerSpeakCommand } from './commands/speak';
 import { registerReadCommand } from './commands/read';
-import { registerWeaknessCommand } from './commands/weakness';
 import { registerBankCommand } from './commands/bank';
 import { registerTodayPlanCommand } from './commands/today_plan';
 import { registerTemplateCommand } from './commands/template';
@@ -74,7 +71,6 @@ async function main() {
   // Register all commands
   registerStartCommand(bot);
   registerPlanCommand(bot);
-  registerResourcesCommand(bot);
   registerLogCommand(bot);
   registerScoreCommand(bot);
   registerProgressCommand(bot);
@@ -83,7 +79,6 @@ async function main() {
   registerScheduleCommand(bot);
   registerSettingsCommand(bot);
   registerAiCommand(bot);
-  registerVideoCommand(bot);
   registerHelpCommand(bot);
   registerImportCommand(bot);
   registerBackupCommand(bot);
@@ -91,43 +86,33 @@ async function main() {
   registerDailyCommands(bot);
   registerSpeakCommand(bot);
   registerReadCommand(bot);
-  registerWeaknessCommand(bot);
   registerBankCommand(bot);
   registerTodayPlanCommand(bot);
   registerTemplateCommand(bot);
   registerMistakesCommand(bot);
 
-  // Setup telegram native command menu
+  // Setup telegram native command menu (max ~20 core commands)
   bot.telegram.setMyCommands([
-    { command: 'start', description: '🏠 Mở Menu chính / Restart' },
-    { command: 'help', description: '❓ Xem danh sách toàn bộ lệnh' },
-    { command: 'plan', description: '📖 Xem lộ trình học IELTS' },
-    { command: 'vocab', description: '📚 Học 1 từ vựng IELTS mỗi ngày' },
-    { command: 'grammar', description: '📝 Học 1 cấu trúc ngữ pháp' },
-    { command: 'phrase', description: '💬 Học 1 cụm từ / thành ngữ' },
-    { command: 'review', description: '🧠 Ôn tập kiến thức đã học hôm nay' },
-    { command: 'placement', description: '🧪 Làm bài test đánh giá trình độ' },
-    { command: 'log', description: '⏱️ Ghi nhận thời gian học (VD: /log listening 30)' },
-    { command: 'today', description: '📅 Báo cáo học tập hôm nay' },
-    { command: 'streak', description: '🔥 Xem chuỗi kỷ luật hiện tại' },
-    { command: 'score', description: '📝 Nhập điểm thi thử' },
-    { command: 'progress', description: '📊 Xem biểu đồ tiến trình' },
-    { command: 'video', description: '📺 AI gợi ý video luyện nghe' },
-    { command: 'ask', description: '🧠 Hỏi AI bất kỳ thứ gì về IELTS' },
-    { command: 'quiz', description: '🎲 Chơi game quiz từ vựng' },
-    { command: 'import', description: '📥 Bóc tách câu hỏi từ URL/Văn bản' },
-    { command: 'resources', description: '📚 Kho tài liệu Sách & Web' },
-    { command: 'backup', description: '☁️ Sao lưu dữ liệu lên Notion' },
-    { command: 'schedule', description: '🗓️ Lên lịch thi thử' },
-    { command: 'write', description: '✍️ Luyện viết Task 2 có AI chấm điểm' },
-    { command: 'speak', description: '🗣️ Luyện nói Speaking Part 1/2/3' },
-    { command: 'read', description: '📖 Luyện đọc hiểu Reading' },
-    { command: 'weakness', description: '🧠 Phân tích điểm yếu cá nhân' },
-    { command: 'bank', description: '📦 Quản lý kho câu hỏi + thu thập tự động' },
-    { command: 'today_plan', description: '📋 Kế hoạch học cụ thể hôm nay' },
-    { command: 'template', description: '📋 Mẫu cấu trúc essay Task 2' },
-    { command: 'mistakes', description: '📊 Phân tích lỗi sai lặp lại' },
-    { command: 'settings', description: '⚙️ Cài đặt mục tiêu, ngôn ngữ' }
+    { command: 'start', description: '🏠 Menu chính' },
+    { command: 'help', description: '❓ Hướng dẫn sử dụng' },
+    { command: 'today_plan', description: '📋 Kế hoạch học hôm nay' },
+    { command: 'plan', description: '📖 Lộ trình học IELTS' },
+    { command: 'vocab', description: '📚 Học từ vựng mới' },
+    { command: 'grammar', description: '📝 Học cấu trúc ngữ pháp' },
+    { command: 'phrase', description: '💬 Học cụm từ hay' },
+    { command: 'read', description: '📖 Luyện đọc hiểu' },
+    { command: 'write', description: '✍️ Luyện viết + AI chấm' },
+    { command: 'speak', description: '🗣️ Luyện nói Speaking' },
+    { command: 'review', description: '🧠 Ôn tập kiến thức' },
+    { command: 'quiz', description: '🎲 Quiz từ vựng' },
+    { command: 'placement', description: '🧪 Test đánh giá trình độ' },
+    { command: 'log', description: '⏱️ Ghi nhận thời gian học' },
+    { command: 'progress', description: '📊 Xem tiến trình' },
+    { command: 'mistakes', description: '📊 Phân tích lỗi sai' },
+    { command: 'ask', description: '🤖 Hỏi AI về IELTS' },
+    { command: 'bank', description: '📦 Kho câu hỏi' },
+    { command: 'backup', description: '☁️ Sao lưu dữ liệu' },
+    { command: 'settings', description: '⚙️ Cài đặt' },
   ]).catch((err: any) => console.error('Failed to set commands:', err));
 
   // Setup cron jobs

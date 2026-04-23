@@ -13,20 +13,17 @@ export function registerHelpCommand(bot: any): void {
     const lang = getUserLang(telegramId);
 
     const helpMsg = lang === 'vi'
-      ? `📚 <b>HƯỚNG DẪN SỬ DỤNG BỘ LỆNH CỦA IELTS BUDDY</b> 📚
+      ? `📚 <b>HƯỚNG DẪN SỬ DỤNG IELTS BUDDY</b> 📚
 
 🔹 <b>Hệ thống &amp; Cài đặt</b>
-/start - Bắt đầu lại bot và mở Menu chính
-/help - Xem danh sách lệnh
+/start - Mở Menu chính
+/help - Xem hướng dẫn này
 /settings - Cài đặt mục tiêu, ngôn ngữ, nhắc nhở
-/lang - Chuyển đổi ngôn ngữ (VI/EN)
 
-🔹 <b>Lộ trình &amp; Tài liệu</b>
-/placement - Làm bài test 20 câu để xếp lớp
+🔹 <b>Lộ trình học</b>
+/today_plan - 📋 Kế hoạch học hôm nay
 /plan - Xem lộ trình học chi tiết
-/today_plan - 📋 Kế hoạch học cụ thể hôm nay
-/resources - Kho tài liệu chọn lọc
-/tips - Mẹo thi IELTS
+/placement - Làm bài test 20 câu để xếp lớp
 
 🔹 <b>Luyện tập 4 kỹ năng</b>
 /vocab - 📚 Học từ vựng IELTS (chọn chủ đề)
@@ -36,85 +33,71 @@ export function registerHelpCommand(bot: any): void {
 /write - ✍️ Luyện viết Task 2 (AI chấm 4 tiêu chí)
 /speak - 🗣️ Luyện nói Speaking Part 1/2/3
 /template - 📋 Xem mẫu cấu trúc essay
-/review - 🧠 Ôn tập cuối ngày (Quiz)
+/review - 🧠 Ôn tập cuối ngày
+/quiz - 🎲 Quiz từ vựng từ kho đề
 
 🔹 <b>Công cụ AI</b>
 /ask - Hỏi AI bất cứ điều gì về IELTS
-/video - AI gợi ý video Youtube luyện nghe
-/quiz - Game câu hỏi từ vựng ngẫu nhiên
 /import - Bóc tách câu hỏi từ URL/văn bản
+/bank - 📦 Kho câu hỏi + thu thập tự động
 
 🔹 <b>Ghi nhận &amp; Tiến trình</b>
-/log - Ghi nhận thời gian học (VD: /log listening 30)
+/log - Ghi thời gian học (VD: /log listening 30)
 /today - Tổng kết học trong ngày
-/week - Báo cáo tuần
-/score - Ghi điểm thi thử (VD: /score 6.5 6.0 6.0 6.5)
-/history - Lịch sử thi thử
-/progress - Biểu đồ tiến trình
+/score - Ghi điểm thi thử
+/progress - Xem tiến trình
 
-🔹 <b>Phân tích &amp; Quản lý</b>
-/weakness - 🧠 Phân tích điểm yếu cá nhân
-/mistakes - 📊 Xem lỗi sai lặp lại
-/bank - 📦 Thống kê kho câu hỏi
+🔹 <b>Phân tích</b>
+/mistakes - 📊 Phân tích lỗi sai lặp lại
 
 🔹 <b>Lịch trình</b>
 /schedule - Lên lịch thi thử
-/next_test - Xem ngày thi sắp tới
-/remind - Hẹn giờ nhắc nhở (VD: /remind 08:00)
+/backup - ☁️ Sao lưu dữ liệu lên Notion
 
 💡 <i>SRS tự động nhắc ôn từ vựng: 1→3→7→14→30 ngày</i>`
       : `📚 <b>IELTS BUDDY COMMAND GUIDE</b> 📚
 
 🔹 <b>System &amp; Settings</b>
-/start - Restart bot and show Main Menu
-/help - Show this command list
+/start - Open Main Menu
+/help - Show this guide
 /settings - Set target, language, reminders
-/lang - Toggle language (VI/EN)
 
-🔹 <b>Plan &amp; Resources</b>
-/placement - Take a 20-question placement test
-/plan - View your study plan
-/today_plan - 📋 Today's personalized study plan
-/resources - Curated books and websites
-/tips - IELTS tips for your phase
+🔹 <b>Study Plan</b>
+/today_plan - 📋 Today's study plan
+/plan - View your study roadmap
+/placement - Take placement test
 
 🔹 <b>4-Skill Practice</b>
-/vocab - 📚 Learn IELTS vocabulary (by topic)
+/vocab - 📚 Learn IELTS vocabulary
 /grammar - 📝 Learn grammar structures
 /phrase - 💬 Learn phrases / idioms
-/read - 📖 Reading comprehension practice
-/write - ✍️ Writing Task 2 with AI grading
-/speak - 🗣️ Speaking Part 1/2/3 practice
-/template - 📋 Essay structure templates
-/review - 🧠 End-of-day review quiz
+/read - 📖 Reading comprehension
+/write - ✍️ Writing Task 2 + AI grading
+/speak - 🗣️ Speaking Part 1/2/3
+/template - 📋 Essay templates
+/review - 🧠 End-of-day review
+/quiz - 🎲 Vocabulary quiz from question bank
 
 🔹 <b>AI Tools</b>
 /ask - Ask AI anything about IELTS
-/video - AI-recommended YouTube videos
-/quiz - Random vocabulary quiz game
 /import - Extract questions from URL/text
+/bank - 📦 Question bank + auto-harvest
 
 🔹 <b>Tracking &amp; Progress</b>
 /log - Log study time (e.g., /log listening 30)
-/today - Today's study summary
-/week - Weekly study report
-/score - Log mock test scores (e.g., /score 6.5 6.0 6.0 6.5)
-/history - Mock test history
-/progress - Progress charts
+/today - Today's summary
+/score - Log mock test scores
+/progress - View progress
 
-🔹 <b>Analysis &amp; Management</b>
-/weakness - 🧠 Personal weakness analysis
-/mistakes - 📊 View repeated errors
-/bank - 📦 Question bank stats
+🔹 <b>Analysis</b>
+/mistakes - 📊 Analyze repeated errors
 
 🔹 <b>Scheduling</b>
 /schedule - Schedule a mock test
-/next_test - Check upcoming test
-/remind - Set daily reminder (e.g., /remind 08:00)
+/backup - ☁️ Backup data to Notion
 
 💡 <i>SRS auto-reviews vocabulary: 1→3→7→14→30 days</i>`;
 
-    // Menu shortcuts
     const buttons = [
       [
         Markup.button.callback(lang === 'vi' ? '🏠 Menu Chính' : '🏠 Main Menu', 'main_menu'),
@@ -128,4 +111,3 @@ export function registerHelpCommand(bot: any): void {
     });
   });
 }
-

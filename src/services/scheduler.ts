@@ -120,19 +120,7 @@ export function setupScheduler(bot: Telegraf): void {
 
       msg += lang === 'vi' ? '\n\n💡 Dùng /review để ôn tập ngay!' : '\n\n💡 Use /review to start reviewing!';
 
-      // Update reviewed items: advance mastery + set next review date
-      const srsIntervals = [1, 3, 7, 14, 30]; // days between reviews
-      for (const item of dueItems) {
-        const newMastery = Math.min((item.mastery_level || 0) + 1, 5);
-        const intervalDays = srsIntervals[Math.min(newMastery - 1, srsIntervals.length - 1)];
-        const nextDate = new Date();
-        nextDate.setDate(nextDate.getDate() + intervalDays);
-        const nextReviewStr = nextDate.toISOString().split('T')[0];
-
-        db.prepare('UPDATE learned_items SET mastery_level = ?, next_review_date = ?, review_count = review_count + 1 WHERE id = ?')
-          .run(newMastery, nextReviewStr, item.id);
-      }
-
+      // Only send reminder — mastery is advanced when user actually uses /review
       bot.telegram.sendMessage(user.telegram_id, msg, { parse_mode: 'Markdown' }).catch((err: any) => {
         console.error(`Failed to send SRS reminder to ${user.telegram_id}:`, err.message);
       });
@@ -202,84 +190,25 @@ export function setupScheduler(bot: Telegraf): void {
     }
   });
 
-  // Auto-schedule monthly mock test - runs on 20th at 10:00 AM
+  // Monthly test reminder - runs on 20th at 10:00 AM (no Notion dependency)
   cron.schedule('0 10 20 * *', async () => {
-    console.log('Running auto-scheduler for monthly mock tests...');
-    const { getNotionEvents, isNotionConfigured } = await import('./notion');
-    
-    if (!isNotionConfigured()) {
-      console.log('Notion not configured, skipping auto-schedule.');
-      return;
-    }
-
+    console.log('Sending monthly mock test reminders...');
     const users = db.prepare('SELECT id, telegram_id, language FROM users').all() as any[];
-    
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    
-    // Find all Saturdays and Sundays in the remaining of the month
-    const weekends: Date[] = [];
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    for (let day = 21; day <= lastDay; day++) {
-      const d = new Date(year, month, day);
-      if (d.getDay() === 0 || d.getDay() === 6) weekends.push(d);
-    }
 
-    if (weekends.length === 0) return;
-
-    const startDate = weekends[0].toISOString().split('T')[0];
-    const endDate = weekends[weekends.length - 1].toISOString().split('T')[0];
-
-    const events = await getNotionEvents(startDate, endDate);
-    
-    // Map dates to event counts
-    const eventCounts: Record<string, number> = {};
-    weekends.forEach(d => eventCounts[d.toISOString().split('T')[0]] = 0);
-    
-    events.forEach(evt => {
-      if (eventCounts[evt.date] !== undefined) {
-        eventCounts[evt.date]++;
-      }
-    });
-
-    // Find the day with minimum events
-    let bestDate = Object.keys(eventCounts)[0];
-    let minEvents = eventCounts[bestDate];
-
-    for (const [date, count] of Object.entries(eventCounts)) {
-      if (count < minEvents) {
-        minEvents = count;
-        bestDate = date;
-      }
-    }
-
-    // Schedule test for each user
     for (const user of users) {
-      // Check if they already have a test scheduled in the future
+      // Check if they already have a test scheduled
       const existing = db.prepare(
         `SELECT * FROM scheduled_tests WHERE user_id = ? AND status = 'scheduled' AND test_date >= date('now')`
       ).get(user.id);
 
       if (!existing) {
-        db.prepare(`INSERT INTO scheduled_tests (user_id, test_date, test_type, status) VALUES (?, ?, 'monthly', 'scheduled')`)
-          .run(user.id, bestDate);
-          
-        // Push this event back to Notion Database so it appears in Notion Calendar
-        const { createNotionEvent } = await import('./notion');
-        await createNotionEvent(
-          'IELTS Monthly Mock Test',
-          bestDate,
-          'Auto-scheduled by IELTS Buddy Bot for the most free weekend day.'
-        );
-
         const lang = user.language || 'vi';
         const msg = lang === 'vi'
-          ? `🤖 *AI AUTO-SCHEDULE*\n━━━━━━━━━━━━━━━━━━━━━━\nTôi đã soi lịch Notion của bạn và thấy ngày *${bestDate}* là cuối tuần rảnh rỗi nhất (chỉ có ${minEvents} sự kiện).\n\nTôi đã tự động xếp lịch *Thi thử IELTS định kỳ (Monthly Mock Test)* vào ngày này để bạn chuẩn bị nhé! Sự kiện này cũng đã được tự động thêm vào Notion Calendar của bạn. 💪\n\nNếu muốn đổi lịch, hãy dùng lệnh /schedule.`
-          : `🤖 *AI AUTO-SCHEDULE*\n━━━━━━━━━━━━━━━━━━━━━━\nI analyzed your Notion Calendar and found that *${bestDate}* is your most free weekend (only ${minEvents} events).\n\nI have automatically scheduled your *Monthly Mock Test* on this date so you can prepare! This event has also been added to your Notion Calendar. 💪\n\nUse /schedule if you want to change it.`;
+          ? `📅 *NHẮC NHỞ THI THỬ HÀNG THÁNG*\n━━━━━━━━━━━━━━━━━━━━━━\nBạn chưa có lịch thi thử tháng này!\n\nĐiều quan trọng nhất để cải thiện IELTS là thi thử định kỳ. Hãy lên lịch ngay!\n\n💡 Dùng /schedule để chọn ngày thi thử.`
+          : `📅 *MONTHLY MOCK TEST REMINDER*\n━━━━━━━━━━━━━━━━━━━━━━\nYou don't have a mock test scheduled this month!\n\nRegular practice tests are key to IELTS improvement. Schedule one now!\n\n💡 Use /schedule to pick a date.`;
 
         bot.telegram.sendMessage(user.telegram_id, msg, { parse_mode: 'Markdown' }).catch((err: any) => {
-          console.error(`Failed to send auto-schedule notice to ${user.telegram_id}:`, err.message);
+          console.error(`Failed to send test reminder to ${user.telegram_id}:`, err.message);
         });
       }
     }
@@ -287,3 +216,4 @@ export function setupScheduler(bot: Telegraf): void {
 
   console.log('⏰ Scheduler initialized');
 }
+

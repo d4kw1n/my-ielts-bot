@@ -16,14 +16,21 @@ export async function createNotionEvent(title: string, date: string, description
   if (!notion || !config.notionDatabaseId) return null;
 
   try {
+    // Auto-detect title property name
+    let titleProp = 'Name';
+    try {
+      const dbInfo = await notion.databases.retrieve({ database_id: config.notionDatabaseId });
+      const props = (dbInfo as any).properties || {};
+      for (const [key, val] of Object.entries(props)) {
+        if ((val as any).type === 'title') { titleProp = key; break; }
+      }
+    } catch { /* use default */ }
+
     const response = await notion.pages.create({
       parent: { database_id: config.notionDatabaseId },
       properties: {
-        Name: {
+        [titleProp]: {
           title: [{ text: { content: title } }],
-        },
-        Date: {
-          date: { start: date },
         },
       },
       ...(description ? {

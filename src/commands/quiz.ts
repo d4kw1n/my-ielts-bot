@@ -7,71 +7,124 @@ function getUserLang(telegramId: string): Lang {
   return user?.language || 'vi';
 }
 
-const quizQuestions = [
-  { word: 'ubiquitous', options: ['Rare', 'Everywhere', 'Dangerous', 'Beautiful'], answer: 1, level: 'C1' },
-  { word: 'pragmatic', options: ['Dreamy', 'Practical', 'Dramatic', 'Romantic'], answer: 1, level: 'C1' },
-  { word: 'exacerbate', options: ['Improve', 'Worsen', 'Create', 'Remove'], answer: 1, level: 'C1' },
-  { word: 'meticulous', options: ['Careless', 'Fast', 'Thorough', 'Simple'], answer: 2, level: 'B2' },
-  { word: 'eloquent', options: ['Quiet', 'Expressive', 'Angry', 'Lazy'], answer: 1, level: 'C1' },
-  { word: 'mitigate', options: ['Increase', 'Reduce', 'Create', 'Ignore'], answer: 1, level: 'B2' },
-  { word: 'ambiguous', options: ['Clear', 'Unclear', 'Wrong', 'Right'], answer: 1, level: 'B2' },
-  { word: 'resilient', options: ['Weak', 'Recoverable', 'Angry', 'Slow'], answer: 1, level: 'B2' },
-  { word: 'detrimental', options: ['Helpful', 'Harmful', 'Neutral', 'Exciting'], answer: 1, level: 'B2' },
-  { word: 'unprecedented', options: ['Common', 'Never before', 'Expected', 'Predicted'], answer: 1, level: 'B2' },
-  { word: 'inevitable', options: ['Avoidable', 'Certain', 'Unlikely', 'Possible'], answer: 1, level: 'B2' },
-  { word: 'alleviate', options: ['Worsen', 'Lessen', 'Cause', 'Prevent'], answer: 1, level: 'B2' },
-  { word: 'conducive', options: ['Harmful', 'Favorable', 'Neutral', 'Boring'], answer: 1, level: 'B2' },
-  { word: 'preclude', options: ['Allow', 'Prevent', 'Encourage', 'Start'], answer: 1, level: 'C1' },
-  { word: 'superfluous', options: ['Necessary', 'Extra', 'Important', 'Missing'], answer: 1, level: 'C1' },
-];
+interface QuizQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  answer: number;
+  explanation?: string;
+}
 
-const activeQuizzes = new Map<string, { questions: typeof quizQuestions; current: number; correct: number; total: number }>();
+const activeQuizzes = new Map<string, { questions: QuizQuestion[]; current: number; correct: number; total: number }>();
+
+function getQuizQuestions(count: number = 5): QuizQuestion[] {
+  // Pull random questions from question_bank (prefer vocabulary type)
+  const dbQuestions = db.prepare(`
+    SELECT id, question, options, answer, explanation 
+    FROM question_bank 
+    WHERE options IS NOT NULL AND options != '' AND answer IS NOT NULL
+    ORDER BY RANDOM() 
+    LIMIT ?
+  `).all(count) as any[];
+
+  if (dbQuestions.length >= count) {
+    return dbQuestions.map((q: any) => {
+      let opts: string[] = [];
+      try { opts = JSON.parse(q.options); } catch { opts = []; }
+      return {
+        id: q.id,
+        question: q.question,
+        options: opts,
+        answer: typeof q.answer === 'number' ? q.answer : parseInt(q.answer, 10) || 0,
+        explanation: q.explanation || '',
+      };
+    }).filter(q => q.options.length >= 2);
+  }
+
+  // Fallback: built-in questions if question_bank is empty
+  const fallback = [
+    { id: 0, question: 'What does "ubiquitous" mean?', options: ['Rare', 'Everywhere', 'Dangerous', 'Beautiful'], answer: 1, explanation: 'Ubiquitous = found everywhere' },
+    { id: 0, question: 'What does "pragmatic" mean?', options: ['Dreamy', 'Practical', 'Dramatic', 'Romantic'], answer: 1, explanation: 'Pragmatic = dealing with things realistically' },
+    { id: 0, question: 'What does "exacerbate" mean?', options: ['Improve', 'Worsen', 'Create', 'Remove'], answer: 1, explanation: 'Exacerbate = make worse' },
+    { id: 0, question: 'What does "meticulous" mean?', options: ['Careless', 'Fast', 'Thorough', 'Simple'], answer: 2, explanation: 'Meticulous = showing great attention to detail' },
+    { id: 0, question: 'What does "mitigate" mean?', options: ['Increase', 'Reduce', 'Create', 'Ignore'], answer: 1, explanation: 'Mitigate = make less severe' },
+    { id: 0, question: 'What does "resilient" mean?', options: ['Weak', 'Recoverable', 'Angry', 'Slow'], answer: 1, explanation: 'Resilient = able to recover quickly' },
+    { id: 0, question: 'What does "detrimental" mean?', options: ['Helpful', 'Harmful', 'Neutral', 'Exciting'], answer: 1, explanation: 'Detrimental = causing harm or damage' },
+    { id: 0, question: 'What does "unprecedented" mean?', options: ['Common', 'Never before', 'Expected', 'Predicted'], answer: 1, explanation: 'Unprecedented = never done or known before' },
+  ];
+  return [...fallback].sort(() => Math.random() - 0.5).slice(0, count);
+}
 
 export function registerQuizCommand(bot: any): void {
   bot.command('quiz', async (ctx: Context) => {
     const telegramId = ctx.from!.id.toString();
     const lang = getUserLang(telegramId);
-    const shuffled = [...quizQuestions].sort(() => Math.random() - 0.5).slice(0, 5);
-    activeQuizzes.set(telegramId, { questions: shuffled, current: 0, correct: 0, total: 5 });
+    const questions = getQuizQuestions(5);
+    
+    if (questions.length === 0) {
+      await ctx.reply(lang === 'vi' ? '❌ Chưa có câu hỏi. Dùng /bank để thu thập câu hỏi trước.' : '❌ No questions available. Use /bank to harvest first.');
+      return;
+    }
+
+    activeQuizzes.set(telegramId, { questions, current: 0, correct: 0, total: questions.length });
     const intro = lang === 'vi'
-      ? `📚 VOCABULARY QUIZ\n━━━━━━━━━━━━━━━━━━━━━━\n5 câu hỏi từ vựng IELTS nâng cao`
-      : `📚 VOCABULARY QUIZ\n━━━━━━━━━━━━━━━━━━━━━━\n5 advanced IELTS vocabulary questions`;
+      ? `📚 VOCABULARY QUIZ\n━━━━━━━━━━━━━━━━━━━━━━\n${questions.length} câu hỏi từ kho đề IELTS`
+      : `📚 VOCABULARY QUIZ\n━━━━━━━━━━━━━━━━━━━━━━\n${questions.length} questions from IELTS question bank`;
     await ctx.reply(intro);
     await sendQuizQ(ctx, telegramId);
   });
 
-  bot.action(/^quiz_(\d+)_(\d+)$/, async (ctx: Context) => {
+  bot.action(/^quiz_(\d+)$/, async (ctx: Context) => {
     const telegramId = ctx.from!.id.toString();
-    const match = (ctx as any).match;
-    const qIndex = parseInt(match[1]);
-    const selected = parseInt(match[2]);
     const lang = getUserLang(telegramId);
     const quiz = activeQuizzes.get(telegramId);
-    if (!quiz || qIndex !== quiz.current) { await ctx.answerCbQuery('Expired'); return; }
+    if (!quiz) { await ctx.answerCbQuery(); return; }
+
+    const match = (ctx as any).match;
+    const selected = parseInt(match[1], 10);
     const q = quiz.questions[quiz.current];
     const isCorrect = selected === q.answer;
+
     if (isCorrect) quiz.correct++;
+
+    const emoji = isCorrect ? '✅' : '❌';
+    const correctOption = q.options[q.answer] || '?';
+    const explanation = q.explanation ? `\n💡 ${q.explanation}` : '';
+    
+    await ctx.answerCbQuery(isCorrect ? '✅ Correct!' : '❌ Wrong!');
+    await ctx.editMessageText(
+      `${emoji} ${q.question}\n\n${lang === 'vi' ? 'Đáp án đúng' : 'Correct answer'}: ${correctOption}${explanation}`
+    );
+
     quiz.current++;
-    await ctx.answerCbQuery(isCorrect ? '✅' : '❌');
-    const fb = isCorrect ? `✅ "${q.word}" = ${q.options[q.answer]}` : `❌ "${q.word}" = ${q.options[q.answer]}`;
+
     if (quiz.current >= quiz.total) {
       const pct = Math.round((quiz.correct / quiz.total) * 100);
-      const r = `${fb}\n\n📊 ${lang === 'vi' ? 'KẾT QUẢ' : 'RESULTS'}: ${quiz.correct}/${quiz.total} (${pct}%)\n${pct >= 80 ? '🌟' : pct >= 60 ? '💪' : '📚'} ${pct >= 80 ? 'Excellent!' : pct >= 60 ? 'Good!' : 'Keep learning!'}\n\n/quiz - ${lang === 'vi' ? 'Làm quiz mới' : 'New quiz'}`;
-      await ctx.editMessageText(r);
+      const grade = pct >= 80 ? '🌟 Excellent!' : pct >= 60 ? '💪 Good!' : '📚 Keep studying!';
+      await ctx.reply(
+        lang === 'vi'
+          ? `📊 KẾT QUẢ QUIZ\n━━━━━━━━━━━━━━━━━━━━━━\n✅ Đúng: ${quiz.correct}/${quiz.total} (${pct}%)\n${grade}\n\n💡 Dùng /quiz để chơi lại!`
+          : `📊 QUIZ RESULTS\n━━━━━━━━━━━━━━━━━━━━━━\n✅ Correct: ${quiz.correct}/${quiz.total} (${pct}%)\n${grade}\n\n💡 Use /quiz to play again!`
+      );
       activeQuizzes.delete(telegramId);
     } else {
-      await ctx.editMessageText(fb);
-      setTimeout(() => sendQuizQ(ctx, telegramId), 500);
+      await sendQuizQ(ctx, telegramId);
     }
   });
 }
 
-async function sendQuizQ(ctx: Context, tid: string): Promise<void> {
-  const lang = getUserLang(tid);
-  const quiz = activeQuizzes.get(tid);
+async function sendQuizQ(ctx: Context, telegramId: string) {
+  const quiz = activeQuizzes.get(telegramId);
   if (!quiz) return;
+
+  const lang = getUserLang(telegramId);
   const q = quiz.questions[quiz.current];
-  const msg = `📚 ${lang === 'vi' ? 'Câu' : 'Q'} ${quiz.current + 1}/${quiz.total} (${q.level})\n\n🔤 "${q.word}" ${lang === 'vi' ? 'có nghĩa là' : 'means'}:`;
-  const btns = q.options.map((o, i) => [Markup.button.callback(`${String.fromCharCode(65 + i)}. ${o}`, `quiz_${quiz.current}_${i}`)]);
-  await ctx.reply(msg, Markup.inlineKeyboard(btns));
+  const num = quiz.current + 1;
+
+  const buttons = q.options.map((opt, i) => [Markup.button.callback(opt, `quiz_${i}`)]);
+
+  await ctx.reply(
+    `❓ ${lang === 'vi' ? 'Câu' : 'Q'}${num}/${quiz.total}: ${q.question}`,
+    Markup.inlineKeyboard(buttons)
+  );
 }

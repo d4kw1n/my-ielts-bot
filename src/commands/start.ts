@@ -22,10 +22,11 @@ function getMainMenuButtons(lang: Lang) {
     [
       Markup.button.callback(lang === 'vi' ? '🧪 Test trình độ' : '🧪 Placement', 'go_placement'),
       Markup.button.callback(lang === 'vi' ? '🧠 Ôn tập' : '🧠 Review', 'go_review'),
+      Markup.button.callback('🎲 Quiz', 'go_quiz'),
     ],
     [
       Markup.button.callback(lang === 'vi' ? '📊 Tiến trình' : '📊 Progress', 'go_progress'),
-      Markup.button.callback(lang === 'vi' ? '📋 Templates' : '📋 Templates', 'go_template'),
+      Markup.button.callback(lang === 'vi' ? '📊 Lỗi sai' : '📊 Mistakes', 'go_mistakes'),
     ],
     [
       Markup.button.callback(lang === 'vi' ? '❓ Trợ giúp' : '❓ Help', 'go_help'),
@@ -112,7 +113,9 @@ I'm your AI tutor dedicated to helping you achieve your IELTS target.
     'go_speak': '/speak',
     'go_placement': '/placement',
     'go_review': '/review',
+    'go_quiz': '/quiz',
     'go_progress': '/progress',
+    'go_mistakes': '/mistakes',
     'go_template': '/template',
     'go_help': '/help',
     'go_settings': '/settings',
@@ -129,10 +132,8 @@ I'm your AI tutor dedicated to helping you achieve your IELTS target.
   const legacyActions: Record<string, string> = {
     'show_plan': '/plan',
     'show_placement': '/placement',
-    'show_video': '/video',
     'show_help': '/help',
     'show_settings': '/settings',
-    'show_resources': '/resources',
     'show_progress': '/progress',
   };
 
