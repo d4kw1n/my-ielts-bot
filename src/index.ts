@@ -39,7 +39,7 @@ async function main() {
   initializeDatabase();
 
   // Create bot instance
-  const bot = new Telegraf(config.botToken);
+  const bot = new Telegraf(config.botToken.trim());
 
   // Global logging middleware to capture all events
   bot.use(async (ctx, next) => {
