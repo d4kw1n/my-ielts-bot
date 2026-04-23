@@ -26,7 +26,8 @@ export function registerVideoCommand(bot: any): void {
     const customTopic = text.split(/\s+/).slice(1).join(' ');
 
     if (customTopic) {
-      await recommendVideo(ctx, telegramId, customTopic, lang);
+      // Direct search
+      await recommendVideo(ctx, telegramId, customTopic, lang, false);
       return;
     }
 
@@ -43,27 +44,47 @@ export function registerVideoCommand(bot: any): void {
     for (let i = 0; i < predefinedTopics.length; i += 2) {
       const row = [Markup.button.callback(
         lang === 'vi' ? predefinedTopics[i].vi : predefinedTopics[i].name, 
-        `video_${predefinedTopics[i].id}`
+        `vtopic_${predefinedTopics[i].id}`
       )];
       if (predefinedTopics[i+1]) {
         row.push(Markup.button.callback(
           lang === 'vi' ? predefinedTopics[i+1].vi : predefinedTopics[i+1].name, 
-          `video_${predefinedTopics[i+1].id}`
+          `vtopic_${predefinedTopics[i+1].id}`
         ));
       }
       buttons.push(row);
     }
     
-    buttons.push([Markup.button.callback(lang === 'vi' ? '🎲 Bất kỳ (Ngẫu nhiên)' : '🎲 Random', 'video_random')]);
+    buttons.push([Markup.button.callback(lang === 'vi' ? '🎲 Bất kỳ (Ngẫu nhiên)' : '🎲 Random', 'vtopic_random')]);
 
     await ctx.reply(`${title}\n━━━━━━━━━━━━━━━━━━━━━━\n${subtitle}`, Markup.inlineKeyboard(buttons));
   });
 
-  bot.action(/^video_(.+)$/, async (ctx: Context) => {
+  bot.action(/^vtopic_(.+)$/, async (ctx: Context) => {
     const telegramId = ctx.from!.id.toString();
     const lang = getUserLang(telegramId);
     const match = (ctx as any).match;
     const topicId = match[1];
+    
+    await ctx.answerCbQuery();
+
+    const title = lang === 'vi' ? '🎥 Bạn muốn xem gì?' : '🎥 What do you want to watch?';
+    const buttons = [
+      [
+        Markup.button.callback(lang === 'vi' ? '🎬 1 Video' : '🎬 1 Video', `vsingl_${topicId}`),
+        Markup.button.callback(lang === 'vi' ? '📑 Danh sách (3 Video)' : '📑 List (3 Videos)', `vlist_${topicId}`)
+      ]
+    ];
+
+    await ctx.editMessageText(title, Markup.inlineKeyboard(buttons));
+  });
+
+  bot.action(/^(vsingl|vlist)_(.+)$/, async (ctx: Context) => {
+    const telegramId = ctx.from!.id.toString();
+    const lang = getUserLang(telegramId);
+    const match = (ctx as any).match;
+    const type = match[1];
+    const topicId = match[2];
     
     await ctx.answerCbQuery();
     
@@ -75,55 +96,62 @@ export function registerVideoCommand(bot: any): void {
       topic = found ? found.name : topicId;
     }
 
-    await recommendVideo(ctx, telegramId, topic, lang, true);
+    await recommendVideo(ctx, telegramId, topic, lang, type === 'vlist');
   });
 }
 
-async function recommendVideo(ctx: Context, telegramId: string, topic: string, lang: Lang, isCallback = false): Promise<void> {
+async function recommendVideo(ctx: Context, telegramId: string, topic: string, lang: Lang, isList = false): Promise<void> {
   let waitMsg;
-  if (isCallback) {
-    waitMsg = await ctx.editMessageText(lang === 'vi' ? '🔍 Đang tìm video phù hợp...' : '🔍 Finding a suitable video...');
-  } else {
-    waitMsg = await ctx.reply(lang === 'vi' ? '🔍 Đang tìm video phù hợp...' : '🔍 Finding a suitable video...');
+  try {
+    waitMsg = await ctx.editMessageText(lang === 'vi' ? '🔍 Đang tìm video phù hợp...' : '🔍 Finding suitable videos...');
+  } catch(e) {
+    waitMsg = await ctx.reply(lang === 'vi' ? '🔍 Đang tìm video phù hợp...' : '🔍 Finding suitable videos...');
   }
 
-  const prompt = lang === 'vi'
-    ? `Tôi đang ôn thi IELTS Listening band 7.0. Hãy giới thiệu cho tôi 1 video trên YouTube (chỉ 1 video) về chủ đề "${topic}".
-Yêu cầu trả lời theo format sau:
-📺 *Tên Video:* (Tên thật của video)
-🗣️ *Kênh YouTube:* (Tên kênh, ví dụ: TED-Ed, BBC Learning English, Kurzgesagt...)
-🔗 *Link Search YouTube:* (Tạo 1 link search: https://www.youtube.com/results?search_query=tên+video+và+kênh)
-📝 *Tại sao nên xem:* (Giải thích ngắn gọn lợi ích cho phần thi Listening, cấu trúc ngữ pháp hay từ vựng nổi bật)
+  const count = isList ? 3 : 1;
+  const prompt = `I am preparing for IELTS Listening band 7.0. Recommend ${count} YouTube video(s) about "${topic}".
+You MUST output ONLY a valid JSON array of objects. Do not wrap in markdown or add explanations.
+Schema for each object:
+{
+  "title": "Real title of the video",
+  "channel": "YouTube Channel (e.g. TED-Ed)",
+  "reason": "Why watch this (in ${lang === 'vi' ? 'Vietnamese' : 'English'})",
+  "search_query": "URL encoded search query of title and channel, e.g. how+internet+works+crash+course"
+}`;
 
-Ghi chú: Trả lời hoàn toàn bằng tiếng Việt.`
-    : `I am preparing for IELTS Listening band 7.0. Recommend exactly 1 YouTube video about the topic "${topic}".
-Please reply in the following format:
-📺 *Video Title:* (Real title of the video)
-🗣️ *YouTube Channel:* (e.g., TED-Ed, BBC Learning English, Kurzgesagt...)
-🔗 *YouTube Search Link:* (Generate a search link: https://www.youtube.com/results?search_query=video+title+channel)
-📝 *Why watch this:* (Briefly explain the benefit for IELTS Listening, interesting grammar, or vocabulary)
-
-Note: Reply entirely in English.`;
-
-  const systemPrompt = "You are a helpful IELTS teacher. Recommend real, existing popular YouTube videos suitable for advanced English learners.";
-
-  const rawRecommendation = await askAi(prompt, systemPrompt);
-  const recommendation = rawRecommendation.replace(/\*\*/g, '*');
-
-  const replyMsg = `${lang === 'vi' ? '🎯 *GỢI Ý VIDEO LUYỆN NGHE*' : '🎯 *VIDEO RECOMMENDATION*'}\n━━━━━━━━━━━━━━━━━━━━━━\n${recommendation}\n━━━━━━━━━━━━━━━━━━━━━━\n💡 ${lang === 'vi' ? 'Sau khi xem xong, dùng `/log listening` để ghi nhận thời gian nhé!' : 'After watching, use `/log listening` to log your study time!'}`;
+  const systemPrompt = "You are an AI that outputs pure JSON arrays only.";
 
   try {
-    if (isCallback) {
-      await ctx.editMessageText(replyMsg, { parse_mode: 'Markdown' });
-    } else {
-      await ctx.telegram.editMessageText(ctx.chat!.id, (waitMsg as any).message_id, undefined, replyMsg, { parse_mode: 'Markdown' });
+    const rawRecommendation = await askAi(prompt, systemPrompt);
+    const jsonStr = rawRecommendation.replace(/```json/g, '').replace(/```/g, '').trim();
+    const videos = JSON.parse(jsonStr);
+
+    if (!Array.isArray(videos) || videos.length === 0) {
+      throw new Error("Invalid format");
     }
-  } catch (e) {
-    // Fallback without markdown if parsing fails
-    if (isCallback) {
-      await ctx.editMessageText(replyMsg);
-    } else {
-      await ctx.telegram.editMessageText(ctx.chat!.id, (waitMsg as any).message_id, undefined, replyMsg);
-    }
+
+    let text = `${lang === 'vi' ? '🎯 *GỢI Ý VIDEO LUYỆN NGHE*' : '🎯 *VIDEO RECOMMENDATION*'}\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+    const buttons: any[] = [];
+
+    videos.forEach((vid: any, idx: number) => {
+      text += `📺 *${vid.title}*\n🗣️ *Kênh:* ${vid.channel}\n📝 *Tại sao:* ${vid.reason}\n\n`;
+      const ytUrl = \`https://www.youtube.com/results?search_query=\${vid.search_query}\`;
+      buttons.push([Markup.button.url(lang === 'vi' ? \`▶️ Xem Video \${isList ? idx + 1 : ''}\` : \`▶️ Watch Video \${isList ? idx + 1 : ''}\`, ytUrl)]);
+    });
+
+    text += \`━━━━━━━━━━━━━━━━━━━━━━\n💡 \${lang === 'vi' ? 'Sau khi xem xong, dùng /log listening nhé!' : 'After watching, use /log listening!'}\`;
+
+    await ctx.telegram.editMessageText(ctx.chat!.id, (waitMsg as any).message_id, undefined, text, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard(buttons)
+    });
+  } catch (error) {
+    console.error("Video recommendation error:", error);
+    await ctx.telegram.editMessageText(
+      ctx.chat!.id, 
+      (waitMsg as any).message_id, 
+      undefined, 
+      lang === 'vi' ? '❌ Lỗi trích xuất video. Vui lòng thử lại.' : '❌ Error parsing video. Please try again.'
+    );
   }
 }
