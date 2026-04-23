@@ -1,9 +1,10 @@
 import db from './db';
 import { seedResources } from '../data/seed';
+import { logger } from '../utils/logger';
 
-export function initializeDatabase(): void {
-  // Users table
-  db.exec(`
+const migrations = [
+  // Version 1: Initial schema
+  `
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       telegram_id TEXT UNIQUE NOT NULL,
@@ -24,10 +25,7 @@ export function initializeDatabase(): void {
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
-  `);
 
-  // Test scores
-  db.exec(`
     CREATE TABLE IF NOT EXISTS test_scores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -42,10 +40,7 @@ export function initializeDatabase(): void {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
-  `);
 
-  // Daily study logs
-  db.exec(`
     CREATE TABLE IF NOT EXISTS study_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -57,10 +52,7 @@ export function initializeDatabase(): void {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
-  `);
 
-  // Study resources
-  db.exec(`
     CREATE TABLE IF NOT EXISTS resources (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       skill TEXT NOT NULL,
@@ -72,10 +64,7 @@ export function initializeDatabase(): void {
       difficulty TEXT DEFAULT 'intermediate',
       is_free BOOLEAN DEFAULT TRUE
     );
-  `);
 
-  // Scheduled tests
-  db.exec(`
     CREATE TABLE IF NOT EXISTS scheduled_tests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -87,10 +76,7 @@ export function initializeDatabase(): void {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
-  `);
 
-  // Placement test answers
-  db.exec(`
     CREATE TABLE IF NOT EXISTS placement_results (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -102,10 +88,7 @@ export function initializeDatabase(): void {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
-  `);
 
-  // Question Bank
-  db.exec(`
     CREATE TABLE IF NOT EXISTS question_bank (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
@@ -115,23 +98,61 @@ export function initializeDatabase(): void {
       options TEXT,
       answer TEXT,
       band REAL NOT NULL,
-      created_by TEXT DEFAULT 'system',
+      explanation TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
-  `);
 
-  // Seed resources if empty
-  const count = db.prepare('SELECT COUNT(*) as cnt FROM resources').get() as any;
-  if (count.cnt === 0) {
-    seedResources();
+    CREATE TABLE IF NOT EXISTS learned_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL, 
+      word TEXT NOT NULL,
+      meaning TEXT,
+      example TEXT,
+      learned_date TEXT NOT NULL,
+      review_count INTEGER DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `
+];
+
+export function initializeDatabase(): void {
+  try {
+    const { user_version } = db.pragma('user_version', { simple: true }) as any;
+    let currentVersion = user_version || 0;
+
+    logger.info(`Current database version: ${currentVersion}`);
+
+    for (let i = currentVersion; i < migrations.length; i++) {
+      const runMigration = db.transaction(() => {
+        db.exec(migrations[i]);
+        db.pragma(`user_version = ${i + 1}`);
+      });
+      
+      runMigration();
+      currentVersion = i + 1;
+      logger.info(`Successfully migrated database to version ${currentVersion}`);
+    }
+
+    // Seed resources if empty
+    const count = db.prepare('SELECT COUNT(*) as cnt FROM resources').get() as any;
+    if (count.cnt === 0) {
+      seedResources();
+      logger.info('Seeded resources successfully');
+    }
+
+    // Seed question bank if empty
+    const qCount = db.prepare('SELECT COUNT(*) as cnt FROM question_bank').get() as any;
+    if (qCount.cnt === 0) {
+      const { seedQuestions } = require('../data/seed');
+      seedQuestions();
+      logger.info('Seeded questions successfully');
+    }
+
+    logger.info('✅ Database initialized successfully');
+  } catch (error) {
+    logger.error('❌ Database migration failed:', error);
+    // Exit process if DB migration fails to prevent data corruption
+    process.exit(1);
   }
-
-  // Seed question bank if empty
-  const qCount = db.prepare('SELECT COUNT(*) as cnt FROM question_bank').get() as any;
-  if (qCount.cnt === 0) {
-    const { seedQuestions } = require('../data/seed');
-    seedQuestions();
-  }
-
-  console.log('✅ Database initialized successfully');
 }

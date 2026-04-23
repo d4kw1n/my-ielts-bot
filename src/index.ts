@@ -16,7 +16,15 @@ import { registerVideoCommand } from './commands/video';
 import { registerHelpCommand } from './commands/help';
 import { registerImportCommand } from './commands/import';
 import { registerBackupCommand } from './commands/backup';
+import { registerDailyCommands } from './commands/daily';
 import { setupScheduler } from './services/scheduler';
+import { logger } from './utils/logger';
+
+// Override global console
+console.log = (...args) => logger.info(args.join(' '));
+console.error = (...args) => logger.error(args.join(' '));
+console.warn = (...args) => logger.warn(args.join(' '));
+console.info = (...args) => logger.info(args.join(' '));
 
 async function main() {
   console.log('🚀 Starting IELTS Study Tracker Bot...');
@@ -32,6 +40,28 @@ async function main() {
 
   // Create bot instance
   const bot = new Telegraf(config.botToken);
+
+  // Global logging middleware to capture all events
+  bot.use(async (ctx, next) => {
+    if (ctx.from) {
+      const username = ctx.from.username || ctx.from.first_name || 'Unknown';
+      let actionType = 'Event';
+      let actionDetail = '';
+
+      if (ctx.message && 'text' in ctx.message) {
+        actionType = 'Message';
+        actionDetail = ctx.message.text;
+      } else if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+        actionType = 'Callback';
+        actionDetail = ctx.callbackQuery.data;
+      }
+      
+      if (actionDetail) {
+        logger.info(`[${actionType}] From: @${username} (ID: ${ctx.from.id}) | Data: ${actionDetail}`);
+      }
+    }
+    await next();
+  });
 
   // Register all commands
   registerStartCommand(bot);
@@ -49,15 +79,21 @@ async function main() {
   registerHelpCommand(bot);
   registerImportCommand(bot);
   registerBackupCommand(bot);
+  registerDailyCommands(bot);
 
   // Setup telegram native command menu
   bot.telegram.setMyCommands([
     { command: 'start', description: '🏠 Mở Menu chính / Restart' },
     { command: 'help', description: '❓ Xem danh sách toàn bộ lệnh' },
     { command: 'plan', description: '📖 Xem lộ trình học IELTS' },
+    { command: 'vocab', description: '📚 Học 1 từ vựng IELTS mỗi ngày' },
+    { command: 'grammar', description: '📝 Học 1 cấu trúc ngữ pháp' },
+    { command: 'phrase', description: '💬 Học 1 cụm từ / thành ngữ' },
+    { command: 'review', description: '🧠 Ôn tập kiến thức đã học hôm nay' },
     { command: 'placement', description: '🧪 Làm bài test đánh giá trình độ' },
     { command: 'log', description: '⏱️ Ghi nhận thời gian học (VD: /log listening 30)' },
     { command: 'today', description: '📅 Báo cáo học tập hôm nay' },
+    { command: 'streak', description: '🔥 Xem chuỗi kỷ luật hiện tại' },
     { command: 'score', description: '📝 Nhập điểm thi thử' },
     { command: 'progress', description: '📊 Xem biểu đồ tiến trình' },
     { command: 'video', description: '📺 AI gợi ý video luyện nghe' },

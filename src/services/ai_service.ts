@@ -29,8 +29,8 @@ export async function askAi(prompt: string, systemPrompt?: string): Promise<stri
           content: prompt
         }
       ],
-      // Llama 3 8B is incredibly fast and free on Groq
-      model: 'llama3-8b-8192',
+      // Llama 3.1 8B is incredibly fast and free on Groq
+      model: 'llama-3.1-8b-instant',
       temperature: 0.7,
       max_tokens: 1024,
     });

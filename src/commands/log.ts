@@ -60,6 +60,8 @@ export function registerLogCommand(bot: any): void {
 
     // Update streak
     let newStreak = user.study_streak || 0;
+    let justHitMilestone = false;
+
     if (user.last_study_date !== today) {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -67,7 +69,8 @@ export function registerLogCommand(bot: any): void {
 
       if (user.last_study_date === yesterdayStr) {
         newStreak += 1;
-      } else if (user.last_study_date !== today) {
+        justHitMilestone = [3, 7, 14, 21, 30, 50, 100].includes(newStreak) || newStreak % 30 === 0;
+      } else {
         newStreak = 1; // Reset streak
       }
     }
@@ -86,21 +89,26 @@ export function registerLogCommand(bot: any): void {
     const emoji = getSkillEmoji(skill);
     const streakMsg = newStreak > 1 ? `\n🔥 Streak: ${newStreak} ${lang === 'vi' ? 'ngày' : 'days'}!` : '';
 
+    let milestoneMsg = '';
+    if (justHitMilestone) {
+      if (lang === 'vi') {
+        if (newStreak === 3) milestoneMsg = `\n\n🥉 Tuyệt vời! Bạn đã duy trì được 3 ngày liên tiếp. Khởi đầu rất tốt!`;
+        else if (newStreak === 7) milestoneMsg = `\n\n🥈 WOW! Một tuần học tập không ngừng nghỉ! Kỷ luật làm nên thành công!`;
+        else if (newStreak === 14) milestoneMsg = `\n\n🥇 Xuất sắc! 14 ngày kỷ luật thép! IELTS không còn là trở ngại nữa!`;
+        else if (newStreak === 30) milestoneMsg = `\n\n👑 Huyền thoại! 30 ngày liên tục! Bạn đang làm nên điều kỳ diệu!`;
+        else milestoneMsg = `\n\n🔥 Quá đỉnh! Bạn đã đạt chuỗi ${newStreak} ngày học liên tục!`;
+      } else {
+        if (newStreak === 3) milestoneMsg = `\n\n🥉 Great! A 3-day streak. Keep the momentum going!`;
+        else if (newStreak === 7) milestoneMsg = `\n\n🥈 WOW! A full week of unstoppable studying! Consistency is key!`;
+        else if (newStreak === 14) milestoneMsg = `\n\n🥇 Excellent! 14 days of discipline! IELTS is no longer a barrier!`;
+        else if (newStreak === 30) milestoneMsg = `\n\n👑 Legendary! 30 straight days! You are doing miracles!`;
+        else milestoneMsg = `\n\n🔥 Amazing! You reached a ${newStreak}-day learning streak!`;
+      }
+    }
+
     const successMsg = lang === 'vi'
-      ? `✅ Đã ghi nhận!
-
-${emoji} ${skill.charAt(0).toUpperCase() + skill.slice(1)}: ${formatDuration(minutes)}
-${notes ? `📝 ${notes}\n` : ''}
-📊 Tổng hôm nay: ${formatDuration(todayTotal.total || minutes)}${streakMsg}
-
-💪 ${todayTotal.total >= 60 ? 'Tuyệt vời! Bạn đã đạt mục tiêu hôm nay!' : `Còn ${Math.max(0, 60 - (todayTotal.total || 0))} phút nữa để đạt mục tiêu 1h/ngày`}`
-      : `✅ Logged!
-
-${emoji} ${skill.charAt(0).toUpperCase() + skill.slice(1)}: ${formatDuration(minutes)}
-${notes ? `📝 ${notes}\n` : ''}
-📊 Today's total: ${formatDuration(todayTotal.total || minutes)}${streakMsg}
-
-💪 ${todayTotal.total >= 60 ? 'Awesome! You reached today\'s goal!' : `${Math.max(0, 60 - (todayTotal.total || 0))} more minutes to reach 1h/day goal`}`;
+      ? `✅ Đã ghi nhận!\n\n${emoji} ${skill.charAt(0).toUpperCase() + skill.slice(1)}: ${formatDuration(minutes)}\n${notes ? `📝 ${notes}\n` : ''}📊 Tổng hôm nay: ${formatDuration(todayTotal.total || minutes)}${streakMsg}\n\n💪 ${todayTotal.total >= 60 ? 'Tuyệt vời! Bạn đã đạt mục tiêu hôm nay!' : `Còn ${Math.max(0, 60 - (todayTotal.total || 0))} phút nữa để đạt mục tiêu 1h/ngày`}${milestoneMsg}`
+      : `✅ Logged!\n\n${emoji} ${skill.charAt(0).toUpperCase() + skill.slice(1)}: ${formatDuration(minutes)}\n${notes ? `📝 ${notes}\n` : ''}📊 Today's total: ${formatDuration(todayTotal.total || minutes)}${streakMsg}\n\n💪 ${todayTotal.total >= 60 ? 'Awesome! You reached today\'s goal!' : `${Math.max(0, 60 - (todayTotal.total || 0))} more minutes to reach 1h/day goal`}${milestoneMsg}`;
 
     await ctx.reply(successMsg);
   });
