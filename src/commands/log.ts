@@ -210,4 +210,53 @@ export function registerLogCommand(bot: any): void {
 
     await ctx.reply(msg);
   });
+
+  // Streak check
+  bot.command('streak', async (ctx: Context) => {
+    const telegramId = ctx.from!.id.toString();
+    const lang = getUserLang(telegramId);
+
+    const user = db.prepare('SELECT id, study_streak, last_study_date FROM users WHERE telegram_id = ?').get(telegramId) as any;
+    if (!user) return;
+
+    let streak = user.study_streak || 0;
+    const today = new Date().toISOString().split('T')[0];
+    let studiedToday = false;
+
+    if (user.last_study_date === today) {
+      studiedToday = true;
+    } else {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      if (user.last_study_date !== yesterdayStr) {
+        streak = 0; // Lost streak
+      }
+    }
+
+    let msg = '';
+    if (lang === 'vi') {
+      msg = `🔥 *Chuỗi Kỷ Luật (Streak)*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+      msg += `Hiện tại: *${streak} ngày*\n\n`;
+      if (studiedToday) {
+        msg += `✅ Bạn đã học hôm nay! Hãy tiếp tục phát huy vào ngày mai nhé!`;
+      } else if (streak > 0) {
+        msg += `⚠️ Bạn chưa học hôm nay! Dùng /log ngay để không làm đứt chuỗi nhé!`;
+      } else {
+        msg += `🌱 Chưa có chuỗi nào. Hãy bắt đầu ngay hôm nay bằng cách dùng lệnh /log!`;
+      }
+    } else {
+      msg = `🔥 *Study Streak*\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+      msg += `Current: *${streak} days*\n\n`;
+      if (studiedToday) {
+        msg += `✅ You've studied today! Keep it up tomorrow!`;
+      } else if (streak > 0) {
+        msg += `⚠️ You haven't studied today! Use /log now so you don't lose your streak!`;
+      } else {
+        msg += `🌱 No streak yet. Start today by using the /log command!`;
+      }
+    }
+
+    await ctx.reply(msg, { parse_mode: 'Markdown' });
+  });
 }

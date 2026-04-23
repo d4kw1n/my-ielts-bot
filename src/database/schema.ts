@@ -128,7 +128,7 @@ export function initializeDatabase(): void {
         db.exec(migrations[i]);
         db.pragma(`user_version = ${i + 1}`);
       });
-      
+
       runMigration();
       currentVersion = i + 1;
       logger.info(`Successfully migrated database to version ${currentVersion}`);
