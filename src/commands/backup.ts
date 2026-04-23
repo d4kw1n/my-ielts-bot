@@ -49,14 +49,20 @@ export function registerBackupCommand(bot: any): void {
       await ctx.telegram.editMessageText(ctx.chat!.id, msg.message_id, undefined, lang === 'vi' ? '☁️ Đang upload lên Notion...' : '☁️ Uploading to Notion...');
 
       // 3. Auto-detect the title property name of the Notion database
-      let titleProp = 'Name'; // default fallback
+      let titleProp = 'title'; // safe fallback — Notion API accepts lowercase 'title' as generic
       try {
         const dbInfo = await notion.databases.retrieve({ database_id: config.notionDatabaseId });
         const props = (dbInfo as any).properties || {};
         for (const [key, val] of Object.entries(props)) {
-          if ((val as any).type === 'title') { titleProp = key; break; }
+          if ((val as any).type === 'title') { 
+            titleProp = key;
+            console.log(`[Backup] Detected Notion title property: "${key}"`);
+            break; 
+          }
         }
-      } catch { /* use default */ }
+      } catch (detectErr: any) {
+        console.error(`[Backup] Failed to detect title property: ${detectErr.message}`);
+      }
 
       // 4. Create a new page in Notion
       const page = await notion.pages.create({
