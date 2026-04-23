@@ -92,6 +92,54 @@ export function setupScheduler(bot: Telegraf): void {
     }
   });
 
+  // SRS Spaced Repetition reminder at 12:00
+  cron.schedule('0 12 * * *', () => {
+    const today = new Date().toISOString().split('T')[0];
+    const users = db.prepare('SELECT id, telegram_id, language FROM users WHERE reminder_enabled = 1').all() as any[];
+
+    for (const user of users) {
+      const dueItems = db.prepare(
+        'SELECT * FROM learned_items WHERE user_id = ? AND next_review_date <= ? AND mastery_level < 5 ORDER BY next_review_date ASC LIMIT 10'
+      ).all(user.id, today) as any[];
+
+      if (dueItems.length === 0) continue;
+
+      const lang = user.language || 'vi';
+      let msg = lang === 'vi'
+        ? `🔄 *ÔN TẬP CÁCH QUÃNG (SRS)*\n━━━━━━━━━━━━━━━━━━━━━━\nBạn có *${dueItems.length}* kiến thức cần ôn lại hôm nay:\n\n`
+        : `🔄 *SPACED REPETITION REVIEW*\n━━━━━━━━━━━━━━━━━━━━━━\nYou have *${dueItems.length}* items due for review today:\n\n`;
+
+      for (let i = 0; i < Math.min(dueItems.length, 5); i++) {
+        const item = dueItems[i];
+        const icon = item.type === 'vocab' ? '🎯' : item.type === 'grammar' ? '📌' : '🔥';
+        msg += `${i + 1}. ${icon} *${item.word}*\n   📖 ${item.meaning}\n`;
+      }
+
+      if (dueItems.length > 5) {
+        msg += lang === 'vi' ? `\n...và ${dueItems.length - 5} kiến thức khác.` : `\n...and ${dueItems.length - 5} more items.`;
+      }
+
+      msg += lang === 'vi' ? '\n\n💡 Dùng /review để ôn tập ngay!' : '\n\n💡 Use /review to start reviewing!';
+
+      // Update reviewed items: advance mastery + set next review date
+      const srsIntervals = [1, 3, 7, 14, 30]; // days between reviews
+      for (const item of dueItems) {
+        const newMastery = Math.min((item.mastery_level || 0) + 1, 5);
+        const intervalDays = srsIntervals[Math.min(newMastery - 1, srsIntervals.length - 1)];
+        const nextDate = new Date();
+        nextDate.setDate(nextDate.getDate() + intervalDays);
+        const nextReviewStr = nextDate.toISOString().split('T')[0];
+
+        db.prepare('UPDATE learned_items SET mastery_level = ?, next_review_date = ?, review_count = review_count + 1 WHERE id = ?')
+          .run(newMastery, nextReviewStr, item.id);
+      }
+
+      bot.telegram.sendMessage(user.telegram_id, msg, { parse_mode: 'Markdown' }).catch((err: any) => {
+        console.error(`Failed to send SRS reminder to ${user.telegram_id}:`, err.message);
+      });
+    }
+  });
+
   // Test reminder - check daily at 09:00
   cron.schedule('0 9 * * *', () => {
     const tomorrow = new Date();

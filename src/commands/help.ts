@@ -31,6 +31,13 @@ export function registerHelpCommand(bot: any): void {
 /ask <câu hỏi> - Hỏi AI bất cứ điều gì về IELTS
 /video - AI gọi ý video Youtube luyện nghe tiếng Anh
 /quiz - Chơi game câu hỏi từ vựng IELTS ngẫu nhiên
+/write - ✍️ Luyện viết Task 2, AI chấm theo 4 tiêu chí IELTS
+
+🔹 **Học hàng ngày (Adaptive Band)**
+/vocab - Học 1 từ vựng IELTS (có chọn chủ đề)
+/grammar - Học 1 cấu trúc ngữ pháp
+/phrase - Học 1 cụm từ / thành ngữ
+/review - 🧠 Ôn tập cuối ngày (Quiz trắc nghiệm)
 
 🔹 **Ghi nhận & Tiến trình**
 /log <kỹ năng> <số phút> - Ghi nhận thời gian học (VD: /log listening 30)
@@ -43,7 +50,9 @@ export function registerHelpCommand(bot: any): void {
 🔹 **Lịch trình**
 /schedule - Lên lịch thi thử với Notion Calendar
 /next_test - Xem ngày thi thử sắp tới
-/remind <HH:MM> - Hẹn giờ bot nhắc nhở học hàng ngày`
+/remind <HH:MM> - Hẹn giờ bot nhắc nhở học hàng ngày
+
+💡 *Hệ thống SRS tự động nhắc ôn từ vựng theo lịch: 1→3→7→14→30 ngày*`
       : `📚 **IELTS BUDDY COMMAND GUIDE** 📚
 
 🔹 **System & Settings**
@@ -62,6 +71,13 @@ export function registerHelpCommand(bot: any): void {
 /ask <question> - Ask AI anything about IELTS
 /video - Get AI recommendations for YouTube listening practice
 /quiz - Play a random IELTS vocabulary quiz
+/write - ✍️ Writing Task 2 practice with AI grading (4 criteria)
+
+🔹 **Daily Learning (Adaptive Band)**
+/vocab - Learn 1 IELTS vocabulary (topic selection)
+/grammar - Learn 1 grammar structure
+/phrase - Learn 1 phrase / idiom
+/review - 🧠 End-of-day review quiz
 
 🔹 **Tracking & Progress**
 /log <skill> <minutes> - Log study time (e.g., /log listening 30)
@@ -74,7 +90,9 @@ export function registerHelpCommand(bot: any): void {
 🔹 **Scheduling**
 /schedule - Schedule a mock test with Notion Calendar
 /next_test - Check your upcoming mock test
-/remind <HH:MM> - Set a daily study reminder`;
+/remind <HH:MM> - Set a daily study reminder
+
+💡 *SRS automatically reminds you to review vocabulary: 1→3→7→14→30 days*`;
 
     // Menu shortcuts
     const buttons = [

@@ -17,6 +17,7 @@ import { registerHelpCommand } from './commands/help';
 import { registerImportCommand } from './commands/import';
 import { registerBackupCommand } from './commands/backup';
 import { registerDailyCommands } from './commands/daily';
+import { registerWriteCommand } from './commands/write';
 import { setupScheduler } from './services/scheduler';
 import { logger } from './utils/logger';
 
@@ -79,6 +80,7 @@ async function main() {
   registerHelpCommand(bot);
   registerImportCommand(bot);
   registerBackupCommand(bot);
+  registerWriteCommand(bot);  // Must be before registerDailyCommands to handle text messages
   registerDailyCommands(bot);
 
   // Setup telegram native command menu
@@ -103,6 +105,7 @@ async function main() {
     { command: 'resources', description: '📚 Kho tài liệu Sách & Web' },
     { command: 'backup', description: '☁️ Sao lưu dữ liệu lên Notion' },
     { command: 'schedule', description: '🗓️ Lên lịch thi thử' },
+    { command: 'write', description: '✍️ Luyện viết Task 2 có AI chấm điểm' },
     { command: 'settings', description: '⚙️ Cài đặt mục tiêu, ngôn ngữ' }
   ]).catch((err: any) => console.error('Failed to set commands:', err));
 

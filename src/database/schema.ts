@@ -113,6 +113,27 @@ const migrations = [
       review_count INTEGER DEFAULT 0,
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+  `,
+  // Version 2: SRS + Writing Practice
+  `
+    ALTER TABLE learned_items ADD COLUMN next_review_date TEXT;
+    ALTER TABLE learned_items ADD COLUMN mastery_level INTEGER DEFAULT 0;
+
+    CREATE TABLE IF NOT EXISTS writing_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      task_type TEXT NOT NULL DEFAULT 'task2',
+      topic TEXT NOT NULL,
+      essay TEXT NOT NULL,
+      band_score REAL,
+      feedback TEXT,
+      ta_score REAL,
+      cc_score REAL,
+      lr_score REAL,
+      gra_score REAL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
   `
 ];
 

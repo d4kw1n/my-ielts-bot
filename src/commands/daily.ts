@@ -10,10 +10,14 @@ function getUserLang(telegramId: string): Lang {
 
 function saveLearnedItem(userId: number, type: string, word: string, meaning: string, example: string) {
   const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const nextReview = tomorrow.toISOString().split('T')[0];
+  
   db.prepare(`
-    INSERT INTO learned_items (user_id, type, word, meaning, example, learned_date)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(userId, type, word, meaning, example, today);
+    INSERT INTO learned_items (user_id, type, word, meaning, example, learned_date, next_review_date, mastery_level)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+  `).run(userId, type, word, meaning, example, today, nextReview);
 
   // Auto-update study streak when learning new items
   updateStudyStreak(userId);
