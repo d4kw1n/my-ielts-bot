@@ -16,6 +16,7 @@ import { registerVideoCommand } from './commands/video';
 import { registerHelpCommand } from './commands/help';
 import { registerImportCommand } from './commands/import';
 import { registerBackupCommand } from './commands/backup';
+import { registerDailyCommands } from './commands/daily';
 import { setupScheduler } from './services/scheduler';
 import { logger } from './utils/logger';
 
@@ -56,12 +57,17 @@ async function main() {
   registerHelpCommand(bot);
   registerImportCommand(bot);
   registerBackupCommand(bot);
+  registerDailyCommands(bot);
 
   // Setup telegram native command menu
   bot.telegram.setMyCommands([
     { command: 'start', description: '🏠 Mở Menu chính / Restart' },
     { command: 'help', description: '❓ Xem danh sách toàn bộ lệnh' },
     { command: 'plan', description: '📖 Xem lộ trình học IELTS' },
+    { command: 'vocab', description: '📚 Học 1 từ vựng IELTS mỗi ngày' },
+    { command: 'grammar', description: '📝 Học 1 cấu trúc ngữ pháp' },
+    { command: 'phrase', description: '💬 Học 1 cụm từ / thành ngữ' },
+    { command: 'review', description: '🧠 Ôn tập kiến thức đã học hôm nay' },
     { command: 'placement', description: '🧪 Làm bài test đánh giá trình độ' },
     { command: 'log', description: '⏱️ Ghi nhận thời gian học (VD: /log listening 30)' },
     { command: 'today', description: '📅 Báo cáo học tập hôm nay' },

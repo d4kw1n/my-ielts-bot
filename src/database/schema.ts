@@ -98,8 +98,20 @@ const migrations = [
       options TEXT,
       answer TEXT,
       band REAL NOT NULL,
-      created_by TEXT DEFAULT 'system',
+      explanation TEXT,
       created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS learned_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL, 
+      word TEXT NOT NULL,
+      meaning TEXT,
+      example TEXT,
+      learned_date TEXT NOT NULL,
+      review_count INTEGER DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `
 ];
