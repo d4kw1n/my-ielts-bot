@@ -179,11 +179,19 @@ export function setupScheduler(bot: Telegraf): void {
       if (!existing) {
         db.prepare(`INSERT INTO scheduled_tests (user_id, test_date, test_type, status) VALUES (?, ?, 'monthly', 'scheduled')`)
           .run(user.id, bestDate);
+          
+        // Push this event back to Notion Database so it appears in Notion Calendar
+        const { createNotionEvent } = await import('./notion');
+        await createNotionEvent(
+          'IELTS Monthly Mock Test',
+          bestDate,
+          'Auto-scheduled by IELTS Buddy Bot for the most free weekend day.'
+        );
 
         const lang = user.language || 'vi';
         const msg = lang === 'vi'
-          ? `🤖 *AI AUTO-SCHEDULE*\n━━━━━━━━━━━━━━━━━━━━━━\nTôi đã soi lịch Notion của bạn và thấy ngày *${bestDate}* là cuối tuần rảnh rỗi nhất (chỉ có ${minEvents} sự kiện).\n\nTôi đã tự động xếp lịch *Thi thử IELTS định kỳ (Monthly Mock Test)* vào ngày này để bạn chuẩn bị nhé! 💪\n\nNếu muốn đổi lịch, hãy dùng lệnh /schedule.`
-          : `🤖 *AI AUTO-SCHEDULE*\n━━━━━━━━━━━━━━━━━━━━━━\nI analyzed your Notion Calendar and found that *${bestDate}* is your most free weekend (only ${minEvents} events).\n\nI have automatically scheduled your *Monthly Mock Test* on this date so you can prepare! 💪\n\nUse /schedule if you want to change it.`;
+          ? `🤖 *AI AUTO-SCHEDULE*\n━━━━━━━━━━━━━━━━━━━━━━\nTôi đã soi lịch Notion của bạn và thấy ngày *${bestDate}* là cuối tuần rảnh rỗi nhất (chỉ có ${minEvents} sự kiện).\n\nTôi đã tự động xếp lịch *Thi thử IELTS định kỳ (Monthly Mock Test)* vào ngày này để bạn chuẩn bị nhé! Sự kiện này cũng đã được tự động thêm vào Notion Calendar của bạn. 💪\n\nNếu muốn đổi lịch, hãy dùng lệnh /schedule.`
+          : `🤖 *AI AUTO-SCHEDULE*\n━━━━━━━━━━━━━━━━━━━━━━\nI analyzed your Notion Calendar and found that *${bestDate}* is your most free weekend (only ${minEvents} events).\n\nI have automatically scheduled your *Monthly Mock Test* on this date so you can prepare! This event has also been added to your Notion Calendar. 💪\n\nUse /schedule if you want to change it.`;
 
         bot.telegram.sendMessage(user.telegram_id, msg, { parse_mode: 'Markdown' }).catch((err: any) => {
           console.error(`Failed to send auto-schedule notice to ${user.telegram_id}:`, err.message);
