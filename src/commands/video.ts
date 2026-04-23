@@ -90,26 +90,27 @@ async function recommendVideo(ctx: Context, telegramId: string, topic: string, l
   const prompt = lang === 'vi'
     ? `Tôi đang ôn thi IELTS Listening band 7.0. Hãy giới thiệu cho tôi 1 video trên YouTube (chỉ 1 video) về chủ đề "${topic}".
 Yêu cầu trả lời theo format sau:
-📺 **Tên Video:** (Tên thật của video)
-🗣️ **Kênh YouTube:** (Tên kênh, ví dụ: TED-Ed, BBC Learning English, Kurzgesagt...)
-🔗 **Link Search YouTube:** (Tạo 1 link search: https://www.youtube.com/results?search_query=tên+video+và+kênh)
-📝 **Tại sao nên xem:** (Giải thích ngắn gọn lợi ích cho phần thi Listening, cấu trúc ngữ pháp hay từ vựng nổi bật)
+📺 *Tên Video:* (Tên thật của video)
+🗣️ *Kênh YouTube:* (Tên kênh, ví dụ: TED-Ed, BBC Learning English, Kurzgesagt...)
+🔗 *Link Search YouTube:* (Tạo 1 link search: https://www.youtube.com/results?search_query=tên+video+và+kênh)
+📝 *Tại sao nên xem:* (Giải thích ngắn gọn lợi ích cho phần thi Listening, cấu trúc ngữ pháp hay từ vựng nổi bật)
 
 Ghi chú: Trả lời hoàn toàn bằng tiếng Việt.`
     : `I am preparing for IELTS Listening band 7.0. Recommend exactly 1 YouTube video about the topic "${topic}".
 Please reply in the following format:
-📺 **Video Title:** (Real title of the video)
-🗣️ **YouTube Channel:** (e.g., TED-Ed, BBC Learning English, Kurzgesagt...)
-🔗 **YouTube Search Link:** (Generate a search link: https://www.youtube.com/results?search_query=video+title+channel)
-📝 **Why watch this:** (Briefly explain the benefit for IELTS Listening, interesting grammar, or vocabulary)
+📺 *Video Title:* (Real title of the video)
+🗣️ *YouTube Channel:* (e.g., TED-Ed, BBC Learning English, Kurzgesagt...)
+🔗 *YouTube Search Link:* (Generate a search link: https://www.youtube.com/results?search_query=video+title+channel)
+📝 *Why watch this:* (Briefly explain the benefit for IELTS Listening, interesting grammar, or vocabulary)
 
 Note: Reply entirely in English.`;
 
   const systemPrompt = "You are a helpful IELTS teacher. Recommend real, existing popular YouTube videos suitable for advanced English learners.";
 
-  const recommendation = await askAi(prompt, systemPrompt);
+  const rawRecommendation = await askAi(prompt, systemPrompt);
+  const recommendation = rawRecommendation.replace(/\*\*/g, '*');
 
-  const replyMsg = `${lang === 'vi' ? '🎯 GỢI Ý VIDEO LUYỆN NGHE' : '🎯 VIDEO RECOMMENDATION'}\n━━━━━━━━━━━━━━━━━━━━━━\n${recommendation}\n━━━━━━━━━━━━━━━━━━━━━━\n💡 ${lang === 'vi' ? 'Sau khi xem xong, dùng `/log listening` để ghi nhận thời gian nhé!' : 'After watching, use `/log listening` to log your study time!'}`;
+  const replyMsg = `${lang === 'vi' ? '🎯 *GỢI Ý VIDEO LUYỆN NGHE*' : '🎯 *VIDEO RECOMMENDATION*'}\n━━━━━━━━━━━━━━━━━━━━━━\n${recommendation}\n━━━━━━━━━━━━━━━━━━━━━━\n💡 ${lang === 'vi' ? 'Sau khi xem xong, dùng `/log listening` để ghi nhận thời gian nhé!' : 'After watching, use `/log listening` to log your study time!'}`;
 
   try {
     if (isCallback) {
