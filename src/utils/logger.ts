@@ -26,18 +26,16 @@ export const logger = winston.createLogger({
   ]
 });
 
-// If we're not in production then log to the console
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple(),
-      winston.format.printf(({ level, message, timestamp, stack }) => {
-        if (stack) {
-          return `${timestamp} ${level}: ${message}\n${stack}`;
-        }
-        return `${timestamp} ${level}: ${message}`;
-      })
-    )
-  }));
-}
+// Always log to console for Docker logs
+logger.add(new winston.transports.Console({
+  format: winston.format.combine(
+    winston.format.colorize(),
+    winston.format.simple(),
+    winston.format.printf(({ level, message, timestamp, stack }) => {
+      if (stack) {
+        return `${timestamp} ${level}: ${message}\n${stack}`;
+      }
+      return `${timestamp} ${level}: ${message}`;
+    })
+  )
+}));

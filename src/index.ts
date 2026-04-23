@@ -41,6 +41,28 @@ async function main() {
   // Create bot instance
   const bot = new Telegraf(config.botToken);
 
+  // Global logging middleware to capture all events
+  bot.use(async (ctx, next) => {
+    if (ctx.from) {
+      const username = ctx.from.username || ctx.from.first_name || 'Unknown';
+      let actionType = 'Event';
+      let actionDetail = '';
+
+      if (ctx.message && 'text' in ctx.message) {
+        actionType = 'Message';
+        actionDetail = ctx.message.text;
+      } else if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
+        actionType = 'Callback';
+        actionDetail = ctx.callbackQuery.data;
+      }
+      
+      if (actionDetail) {
+        logger.info(`[${actionType}] From: @${username} (ID: ${ctx.from.id}) | Data: ${actionDetail}`);
+      }
+    }
+    await next();
+  });
+
   // Register all commands
   registerStartCommand(bot);
   registerPlanCommand(bot);
