@@ -134,6 +134,13 @@ const migrations = [
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+  `,
+  // Version 3: Question bank enrichment - add source tracking and dedup
+  `
+    ALTER TABLE question_bank ADD COLUMN created_by TEXT DEFAULT 'manual';
+    ALTER TABLE question_bank ADD COLUMN source_url TEXT;
+    ALTER TABLE question_bank ADD COLUMN content_hash TEXT;
+    ALTER TABLE question_bank ADD COLUMN topic TEXT;
   `
 ];
 

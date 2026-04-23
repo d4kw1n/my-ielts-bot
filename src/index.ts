@@ -21,6 +21,7 @@ import { registerWriteCommand } from './commands/write';
 import { registerSpeakCommand } from './commands/speak';
 import { registerReadCommand } from './commands/read';
 import { registerWeaknessCommand } from './commands/weakness';
+import { registerBankCommand } from './commands/bank';
 import { setupScheduler } from './services/scheduler';
 import { logger } from './utils/logger';
 
@@ -88,6 +89,7 @@ async function main() {
   registerSpeakCommand(bot);
   registerReadCommand(bot);
   registerWeaknessCommand(bot);
+  registerBankCommand(bot);
 
   // Setup telegram native command menu
   bot.telegram.setMyCommands([
@@ -115,6 +117,7 @@ async function main() {
     { command: 'speak', description: '🗣️ Luyện nói Speaking Part 1/2/3' },
     { command: 'read', description: '📖 Luyện đọc hiểu Reading' },
     { command: 'weakness', description: '🧠 Phân tích điểm yếu cá nhân' },
+    { command: 'bank', description: '📦 Quản lý kho câu hỏi + thu thập tự động' },
     { command: 'settings', description: '⚙️ Cài đặt mục tiêu, ngôn ngữ' }
   ]).catch((err: any) => console.error('Failed to set commands:', err));
 

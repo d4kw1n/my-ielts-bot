@@ -1,7 +1,6 @@
 import cron from 'node-cron';
 import { Telegraf } from 'telegraf';
 import db from '../database/db';
-import { checkAndRefillQuestionBank } from './question_generator';
 
 const studySuggestions = {
   vi: [
@@ -191,10 +190,16 @@ export function setupScheduler(bot: Telegraf): void {
     }
   });
 
-  // Auto-generate questions using AI every 6 hours
-  cron.schedule('0 */6 * * *', () => {
-    console.log('Running automated question bank check...');
-    checkAndRefillQuestionBank();
+  // Auto-harvest questions daily at 03:00 AM
+  cron.schedule('0 3 * * *', async () => {
+    console.log('Running automated question harvester...');
+    try {
+      const { runHarvester } = await import('./harvester');
+      const result = await runHarvester();
+      console.log(`Harvester completed: ${result.articlesProcessed} articles, ${result.questionsGenerated} new questions`);
+    } catch (e) {
+      console.error('Harvester cron error:', e);
+    }
   });
 
   // Auto-schedule monthly mock test - runs on 20th at 10:00 AM
