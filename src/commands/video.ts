@@ -15,7 +15,14 @@ const predefinedTopics = [
   { id: 'technology', name: '💻 Technology', vi: 'Công nghệ' },
   { id: 'environment', name: '🌍 Environment', vi: 'Môi trường' },
   { id: 'health', name: '🏥 Health & Fitness', vi: 'Sức khỏe' },
-  { id: 'society', name: '👥 Society & Culture', vi: 'Xã hội' },
+  { id: 'society', name: '👥 Society', vi: 'Xã hội' },
+  { id: 'business', name: '💼 Business & Work', vi: 'Kinh doanh & Công việc' },
+  { id: 'science', name: '🧬 Science & Space', vi: 'Khoa học & Vũ trụ' },
+  { id: 'psychology', name: '🧠 Psychology', vi: 'Tâm lý học' },
+  { id: 'art', name: '🎨 Art & Design', vi: 'Nghệ thuật & Thiết kế' },
+  { id: 'history', name: '🏛️ History', vi: 'Lịch sử' },
+  { id: 'food', name: '🍔 Food & Diet', vi: 'Ẩm thực' },
+  { id: 'travel', name: '✈️ Travel & Tourism', vi: 'Du lịch' },
 ];
 
 export function registerVideoCommand(bot: any): void {
