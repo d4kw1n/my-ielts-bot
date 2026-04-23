@@ -18,6 +18,9 @@ import { registerImportCommand } from './commands/import';
 import { registerBackupCommand } from './commands/backup';
 import { registerDailyCommands } from './commands/daily';
 import { registerWriteCommand } from './commands/write';
+import { registerSpeakCommand } from './commands/speak';
+import { registerReadCommand } from './commands/read';
+import { registerWeaknessCommand } from './commands/weakness';
 import { setupScheduler } from './services/scheduler';
 import { logger } from './utils/logger';
 
@@ -82,6 +85,9 @@ async function main() {
   registerBackupCommand(bot);
   registerWriteCommand(bot);  // Must be before registerDailyCommands to handle text messages
   registerDailyCommands(bot);
+  registerSpeakCommand(bot);
+  registerReadCommand(bot);
+  registerWeaknessCommand(bot);
 
   // Setup telegram native command menu
   bot.telegram.setMyCommands([
@@ -106,6 +112,9 @@ async function main() {
     { command: 'backup', description: '☁️ Sao lưu dữ liệu lên Notion' },
     { command: 'schedule', description: '🗓️ Lên lịch thi thử' },
     { command: 'write', description: '✍️ Luyện viết Task 2 có AI chấm điểm' },
+    { command: 'speak', description: '🗣️ Luyện nói Speaking Part 1/2/3' },
+    { command: 'read', description: '📖 Luyện đọc hiểu Reading' },
+    { command: 'weakness', description: '🧠 Phân tích điểm yếu cá nhân' },
     { command: 'settings', description: '⚙️ Cài đặt mục tiêu, ngôn ngữ' }
   ]).catch((err: any) => console.error('Failed to set commands:', err));
 
