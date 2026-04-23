@@ -14,6 +14,7 @@ import { logger } from '../utils/logger';
 
 // === Sources to crawl ===
 const IELTS_SOURCES = [
+  // --- English News & Academic ---
   {
     name: 'BBC Learning English',
     url: 'https://www.bbc.co.uk/learningenglish/english/features/6-minute-english',
@@ -38,11 +39,105 @@ const IELTS_SOURCES = [
     type: 'article' as const,
     topics: ['technology'],
   },
+  {
+    name: 'National Geographic',
+    url: 'https://www.nationalgeographic.com/environment',
+    type: 'article' as const,
+    topics: ['environment', 'science'],
+  },
+  {
+    name: 'Scientific American',
+    url: 'https://www.scientificamerican.com',
+    type: 'article' as const,
+    topics: ['science', 'technology', 'health'],
+  },
+  {
+    name: 'The Economist - Finance',
+    url: 'https://www.economist.com/finance-and-economics',
+    type: 'article' as const,
+    topics: ['economics', 'work'],
+  },
+  // --- Vietnamese IELTS Sites ---
+  {
+    name: 'IELTS Fighter',
+    url: 'https://ieltsfighter.com/reading-luyen-thi-ielts/',
+    type: 'article' as const,
+    topics: ['education', 'society'],
+  },
+  {
+    name: 'DOL English',
+    url: 'https://dolenglish.vn/blog',
+    type: 'article' as const,
+    topics: ['education', 'technology'],
+  },
+  {
+    name: 'ZIM Academy',
+    url: 'https://zim.vn/ielts-reading',
+    type: 'article' as const,
+    topics: ['education', 'environment'],
+  },
+  {
+    name: 'IELTS Vietop',
+    url: 'https://vietop.edu.vn/blog/',
+    type: 'article' as const,
+    topics: ['education', 'society'],
+  },
+];
+
+// Famous IELTS book templates — AI generates questions in these styles
+const BOOK_TEMPLATES = [
+  {
+    book: 'Cambridge IELTS 14-19',
+    style: 'Academic reading passages from Cambridge official tests. Passages are 700-900 words, topics include archaeology, marine biology, urban planning, cognitive psychology, agricultural science. Questions include True/False/Not Given, matching headings, sentence completion, multiple choice, and summary completion.',
+    topics: ['science', 'history', 'psychology', 'environment', 'technology', 'society'],
+    bands: [6.0, 6.5, 7.0, 7.5, 8.0],
+  },
+  {
+    book: 'Collins Reading for IELTS',
+    style: 'Skill-building reading exercises focusing on scanning, skimming, and inference. Topics include health care systems, renewable energy, education reforms, digital communication. Questions progress from B1 to C1 level.',
+    topics: ['health', 'environment', 'education', 'technology'],
+    bands: [5.0, 5.5, 6.0, 6.5],
+  },
+  {
+    book: 'Cambridge Vocabulary for IELTS Advanced',
+    style: 'Topic-based vocabulary in academic context. Tests collocations, word families, synonyms in context, and academic word list usage. Topics include globalization, biotechnology, urbanization, media influence.',
+    topics: ['economics', 'science', 'society', 'technology', 'environment'],
+    bands: [6.5, 7.0, 7.5, 8.0],
+  },
+  {
+    book: 'Cambridge Grammar for IELTS',
+    style: 'Grammar exercises testing complex structures: conditionals, relative clauses, passive constructions, reported speech, articles, noun phrases. Contexts are academic and semi-formal.',
+    topics: ['grammar'],
+    bands: [5.5, 6.0, 6.5, 7.0],
+  },
+  {
+    book: 'Barrons Essential Words for IELTS',
+    style: 'Vocabulary building with 600 essential words organized by topic. Tests meaning in context, word formation, and usage in academic sentences.',
+    topics: ['education', 'health', 'environment', 'technology', 'work', 'society'],
+    bands: [5.0, 5.5, 6.0, 6.5],
+  },
+  {
+    book: 'IELTS Trainer 2 (Cambridge)',
+    style: 'Full test practice with guided exercises. Reading passages cover diverse topics: animal behavior, space exploration, linguistic research, architectural design. Includes all IELTS question types.',
+    topics: ['science', 'art', 'history', 'environment'],
+    bands: [6.0, 6.5, 7.0, 7.5],
+  },
+  {
+    book: 'Target Band 7 (Simone Braverman)',
+    style: 'Strategy-focused practice. Questions designed to test common mistakes at band 6-7 level. Focus on tricky vocabulary, confusing grammar patterns, and reading trap answers.',
+    topics: ['education', 'health', 'work', 'society', 'technology'],
+    bands: [6.0, 6.5, 7.0],
+  },
 ];
 
 // Topics × Band matrix for comprehensive AI generation
 const GENERATION_MATRIX = {
-  topics: ['environment', 'technology', 'education', 'health', 'work', 'society', 'science', 'art', 'travel', 'economics'],
+  topics: [
+    'environment', 'technology', 'education', 'health', 'work',
+    'society', 'science', 'art', 'travel', 'economics',
+    'psychology', 'history', 'urbanization', 'media', 'crime',
+    'globalization', 'food', 'sports', 'space', 'language'
+  ],
   bands: [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0],
   types: ['vocabulary', 'grammar', 'reading'] as const,
 };
@@ -318,8 +413,65 @@ export async function runHarvester(): Promise<{ articlesProcessed: number; quest
     }
   }
 
+  // Phase 3: Generate questions in the style of famous IELTS books
+  for (const book of BOOK_TEMPLATES) {
+    const count = await generateBookStyleQuestions(book);
+    totalQuestions += count;
+    logger.info(`[Harvester] Book-style (${book.book}): +${count} questions`);
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
   logger.info(`🤖 [Harvester] Completed! Articles: ${totalArticles}, New Questions: ${totalQuestions}`);
   return { articlesProcessed: totalArticles, questionsGenerated: totalQuestions };
+}
+
+// === Generate questions styled after famous IELTS books ===
+async function generateBookStyleQuestions(book: typeof BOOK_TEMPLATES[0]): Promise<number> {
+  let total = 0;
+  // Pick a random topic and band from this book's range
+  const topic = book.topics[Math.floor(Math.random() * book.topics.length)];
+  const band = book.bands[Math.floor(Math.random() * book.bands.length)];
+
+  const prompt = `You are creating practice questions in the style of "${book.book}".
+
+Style description: ${book.style}
+
+Generate 5 high-quality IELTS practice questions.
+- Topic: ${topic}
+- Target band: ${band}
+- Mix: 2 vocabulary (collocations/context) + 1 grammar (complex structure) + 2 reading (with 40-60 word passage each)
+- Make questions feel authentic to the book style described above
+- For vocabulary: test academic words, collocations, synonyms in context
+- For reading: include a short passage excerpt then ask comprehension
+
+Return ONLY a valid JSON array:
+[
+  {
+    "type": "vocabulary" | "grammar" | "reading",
+    "level": "${band >= 7.0 ? 'C1' : band >= 6.0 ? 'B2' : 'B1'}",
+    "topic": "${topic}",
+    "question": "Question in English",
+    "question_vi": "Vietnamese translation",
+    "options": ["A", "B", "C", "D"],
+    "answer": 0,
+    "band": ${band},
+    "explanation": "Brief explanation"
+  }
+]`;
+
+  try {
+    const response = await askAi(prompt, 'You output pure JSON arrays only.');
+    if (response.startsWith('❌')) return 0;
+    const jsonStr = response.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonMatch = jsonStr.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return 0;
+    const questions = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(questions)) return 0;
+    total = saveQuestions(questions, `book_${book.book.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`, '');
+  } catch (e) {
+    logger.error(`Book-style generation failed for ${book.book}: ${(e as Error).message}`);
+  }
+  return total;
 }
 
 // === Generate for a single topic across all bands ===
