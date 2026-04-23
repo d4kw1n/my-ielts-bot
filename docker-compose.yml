@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   ielts-bot:
     build: .
     container_name: ielts-buddy-bot
     restart: unless-stopped
+    network_mode: "host"
     env_file:
       - .env
     volumes:
