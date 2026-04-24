@@ -192,6 +192,10 @@ export function initializeDatabase(): void {
     safeAddColumn('question_bank', 'source_url', 'TEXT');
     safeAddColumn('question_bank', 'content_hash', 'TEXT');
     safeAddColumn('question_bank', 'topic', 'TEXT');
+    // Vocab scheduling preferences
+    safeAddColumn('users', 'daily_vocab_count', 'INTEGER', '5');
+    safeAddColumn('users', 'wake_time', 'TEXT', "'07:00'");
+    safeAddColumn('users', 'sleep_time', 'TEXT', "'23:00'");
 
     // Seed resources if empty
     const count = db.prepare('SELECT COUNT(*) as cnt FROM resources').get() as any;

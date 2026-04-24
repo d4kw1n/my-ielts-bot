@@ -14,23 +14,33 @@ export function registerSettingsCommand(bot: any): void {
     const user = db.prepare('SELECT * FROM users WHERE telegram_id = ?').get(telegramId) as any;
     if (!user) { await ctx.reply('/start first'); return; }
 
+    const wakeTime = user.wake_time || '07:00';
+    const sleepTime = user.sleep_time || '23:00';
+    const vocabCount = user.daily_vocab_count || 5;
+
     const msg = lang === 'vi'
       ? `⚙️ CÀI ĐẶT
 ━━━━━━━━━━━━━━━━━━━━━━
 🎯 Mục tiêu: Band ${user.target_score}
 📅 Deadline: ${user.target_date || 'Chưa đặt'}
-📍 Phase: ${user.current_phase}
 🌐 Ngôn ngữ: ${user.language === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}
-⏰ Nhắc nhở: ${user.daily_reminder_time || '08:00'}
-🔔 Nhắc nhở: ${user.reminder_enabled ? 'Bật' : 'Tắt'}`
+🔔 Nhắc nhở: ${user.reminder_enabled ? 'Bật' : 'Tắt'}
+━━━━━━━━━━━━━━━━━━━━━━
+📚 Số từ vựng/ngày: ${vocabCount}
+🌅 Giờ thức: ${wakeTime}
+🌙 Giờ ngủ: ${sleepTime}
+⏰ Bot sẽ tự chia ${vocabCount + 2} bài học đều trong ngày`
       : `⚙️ SETTINGS
 ━━━━━━━━━━━━━━━━━━━━━━
 🎯 Target: Band ${user.target_score}
 📅 Deadline: ${user.target_date || 'Not set'}
-📍 Phase: ${user.current_phase}
 🌐 Language: ${user.language === 'vi' ? '🇻🇳 Vietnamese' : '🇬🇧 English'}
-⏰ Reminder: ${user.daily_reminder_time || '08:00'}
-🔔 Reminder: ${user.reminder_enabled ? 'On' : 'Off'}`;
+🔔 Reminder: ${user.reminder_enabled ? 'On' : 'Off'}
+━━━━━━━━━━━━━━━━━━━━━━
+📚 Vocab/day: ${vocabCount}
+🌅 Wake time: ${wakeTime}
+🌙 Sleep time: ${sleepTime}
+⏰ Bot will spread ${vocabCount + 2} lessons throughout your day`;
 
     await ctx.reply(msg, Markup.inlineKeyboard([
       [
@@ -38,10 +48,14 @@ export function registerSettingsCommand(bot: any): void {
         Markup.button.callback('📅 Deadline', 'set_deadline'),
       ],
       [
-        Markup.button.callback('⏰ Reminder Time', 'set_reminder_time'),
-        Markup.button.callback(user.reminder_enabled ? '🔕 Off' : '🔔 On', 'toggle_reminder'),
+        Markup.button.callback(`📚 Vocab: ${vocabCount}/day`, 'set_vocab_count'),
       ],
       [
+        Markup.button.callback(`🌅 Wake: ${wakeTime}`, 'set_wake_time'),
+        Markup.button.callback(`🌙 Sleep: ${sleepTime}`, 'set_sleep_time'),
+      ],
+      [
+        Markup.button.callback(user.reminder_enabled ? '🔕 Tắt nhắc nhở' : '🔔 Bật nhắc nhở', 'toggle_reminder'),
         Markup.button.callback('🌐 Language', 'set_language'),
       ],
     ]));
@@ -108,34 +122,107 @@ export function registerSettingsCommand(bot: any): void {
     await ctx.editMessageText(lang === 'vi' ? `🔔 Nhắc nhở: ${newState ? 'Bật' : 'Tắt'}` : `🔔 Reminder: ${newState ? 'On' : 'Off'}`);
   });
 
-  bot.action('set_reminder_time', async (ctx: Context) => {
+  // Vocab count setting
+  bot.action('set_vocab_count', async (ctx: Context) => {
     const lang = getUserLang(ctx.from!.id.toString());
     await ctx.answerCbQuery();
     await ctx.editMessageText(
-      lang === 'vi' ? 'Chọn giờ nhắc nhở:' : 'Select reminder time:',
+      lang === 'vi' ? '📚 Chọn số từ vựng muốn học mỗi ngày:' : '📚 Select daily vocab count:',
       Markup.inlineKeyboard([
         [
-          Markup.button.callback('06:00', 'rtime_06:00'),
-          Markup.button.callback('07:00', 'rtime_07:00'),
-          Markup.button.callback('08:00', 'rtime_08:00'),
+          Markup.button.callback('3 từ', 'vcount_3'),
+          Markup.button.callback('5 từ', 'vcount_5'),
+          Markup.button.callback('8 từ', 'vcount_8'),
         ],
         [
-          Markup.button.callback('19:00', 'rtime_19:00'),
-          Markup.button.callback('20:00', 'rtime_20:00'),
-          Markup.button.callback('21:00', 'rtime_21:00'),
+          Markup.button.callback('10 từ', 'vcount_10'),
+          Markup.button.callback('15 từ', 'vcount_15'),
+          Markup.button.callback('20 từ', 'vcount_20'),
         ],
       ])
     );
   });
 
-  bot.action(/^rtime_(.+)$/, async (ctx: Context) => {
+  bot.action(/^vcount_(\d+)$/, async (ctx: Context) => {
+    const telegramId = ctx.from!.id.toString();
+    const match = (ctx as any).match;
+    const count = parseInt(match[1], 10);
+    const lang = getUserLang(telegramId);
+    db.prepare('UPDATE users SET daily_vocab_count = ? WHERE telegram_id = ?').run(count, telegramId);
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(lang === 'vi' ? `✅ Sẽ học ${count} từ vựng/ngày` : `✅ Will learn ${count} vocab/day`);
+  });
+
+  // Wake time setting
+  bot.action('set_wake_time', async (ctx: Context) => {
+    const lang = getUserLang(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(
+      lang === 'vi' ? '🌅 Bạn thường thức dậy lúc mấy giờ?' : '🌅 When do you usually wake up?',
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback('05:00', 'wake_05:00'),
+          Markup.button.callback('06:00', 'wake_06:00'),
+          Markup.button.callback('06:30', 'wake_06:30'),
+        ],
+        [
+          Markup.button.callback('07:00', 'wake_07:00'),
+          Markup.button.callback('07:30', 'wake_07:30'),
+          Markup.button.callback('08:00', 'wake_08:00'),
+        ],
+        [
+          Markup.button.callback('08:30', 'wake_08:30'),
+          Markup.button.callback('09:00', 'wake_09:00'),
+          Markup.button.callback('10:00', 'wake_10:00'),
+        ],
+      ])
+    );
+  });
+
+  bot.action(/^wake_(.+)$/, async (ctx: Context) => {
     const telegramId = ctx.from!.id.toString();
     const match = (ctx as any).match;
     const time = match[1];
     const lang = getUserLang(telegramId);
-    db.prepare('UPDATE users SET daily_reminder_time = ? WHERE telegram_id = ?').run(time, telegramId);
+    db.prepare('UPDATE users SET wake_time = ? WHERE telegram_id = ?').run(time, telegramId);
     await ctx.answerCbQuery();
-    await ctx.editMessageText(lang === 'vi' ? `✅ Nhắc nhở lúc ${time}` : `✅ Reminder at ${time}`);
+    await ctx.editMessageText(lang === 'vi' ? `✅ Giờ thức dậy: ${time}` : `✅ Wake time: ${time}`);
+  });
+
+  // Sleep time setting
+  bot.action('set_sleep_time', async (ctx: Context) => {
+    const lang = getUserLang(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(
+      lang === 'vi' ? '🌙 Bạn thường đi ngủ lúc mấy giờ?' : '🌙 When do you usually go to sleep?',
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback('21:00', 'sleep_21:00'),
+          Markup.button.callback('22:00', 'sleep_22:00'),
+          Markup.button.callback('22:30', 'sleep_22:30'),
+        ],
+        [
+          Markup.button.callback('23:00', 'sleep_23:00'),
+          Markup.button.callback('23:30', 'sleep_23:30'),
+          Markup.button.callback('00:00', 'sleep_00:00'),
+        ],
+        [
+          Markup.button.callback('00:30', 'sleep_00:30'),
+          Markup.button.callback('01:00', 'sleep_01:00'),
+          Markup.button.callback('02:00', 'sleep_02:00'),
+        ],
+      ])
+    );
+  });
+
+  bot.action(/^sleep_(.+)$/, async (ctx: Context) => {
+    const telegramId = ctx.from!.id.toString();
+    const match = (ctx as any).match;
+    const time = match[1];
+    const lang = getUserLang(telegramId);
+    db.prepare('UPDATE users SET sleep_time = ? WHERE telegram_id = ?').run(time, telegramId);
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(lang === 'vi' ? `✅ Giờ đi ngủ: ${time}` : `✅ Sleep time: ${time}`);
   });
 
   bot.action('set_language', async (ctx: Context) => {

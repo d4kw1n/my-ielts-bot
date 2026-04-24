@@ -2,6 +2,54 @@ import cron from 'node-cron';
 import { Telegraf } from 'telegraf';
 import db from '../database/db';
 
+/**
+ * Calculate evenly-spaced send times for vocab/grammar/review throughout a user's waking hours.
+ * Returns array of "HH:MM" strings.
+ *
+ * Layout: [vocab1, vocab2, ..., grammar_slot, ..., vocabN, review]
+ * Total slots = vocabCount + 2 (grammar + review)
+ */
+function calculateSendTimes(wakeTime: string, sleepTime: string, vocabCount: number): string[] {
+  const [wakeH, wakeM] = wakeTime.split(':').map(Number);
+  const [sleepH, sleepM] = sleepTime.split(':').map(Number);
+
+  // Convert to minutes since midnight
+  let wakeMin = wakeH * 60 + wakeM;
+  let sleepMin = sleepH * 60 + sleepM;
+
+  // Handle case where sleep is past midnight (e.g., 01:00)
+  if (sleepMin <= wakeMin) sleepMin += 24 * 60;
+
+  // Total slots = vocab words + 1 grammar/phrase + 1 review
+  const totalSlots = vocabCount + 2;
+
+  // Leave 30 min buffer after wake and before sleep
+  const effectiveStart = wakeMin + 30;
+  const effectiveEnd = sleepMin - 30;
+  const availableMinutes = effectiveEnd - effectiveStart;
+
+  if (availableMinutes < totalSlots * 30) {
+    // Not enough time — fall back to basic schedule
+    return [formatTime(wakeMin + 60), formatTime(Math.floor((wakeMin + sleepMin) / 2)), formatTime(sleepMin - 60)];
+  }
+
+  const interval = Math.floor(availableMinutes / (totalSlots - 1));
+  const times: string[] = [];
+
+  for (let i = 0; i < totalSlots; i++) {
+    const minutes = effectiveStart + i * interval;
+    times.push(formatTime(minutes % (24 * 60)));
+  }
+
+  return times;
+}
+
+function formatTime(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60) % 24;
+  const m = totalMinutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
 const studySuggestions = {
   vi: [
     '🎧 Nghe 1 bài BBC 6 Minute English + ghi chép từ mới',
@@ -59,35 +107,66 @@ export function setupScheduler(bot: Telegraf): void {
     }
   });
 
-  // Auto-send Vocabulary at 09:00
-  cron.schedule('0 9 * * *', async () => {
-    const users = db.prepare('SELECT telegram_id FROM users WHERE reminder_enabled = 1').all() as any[];
-    const { sendDailyVocab } = await import('../commands/daily');
-    for (const user of users) {
-      await sendDailyVocab(bot, user.telegram_id, user.telegram_id);
-    }
-  });
+  // Dynamic vocab/grammar/review scheduler — checks every minute
+  // Each user gets personalized send times based on wake_time, sleep_time, daily_vocab_count
+  cron.schedule('* * * * *', async () => {
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const today = now.toISOString().split('T')[0];
 
-  // Auto-send Grammar/Phrase at 15:00
-  cron.schedule('0 15 * * *', async () => {
-    const users = db.prepare('SELECT telegram_id FROM users WHERE reminder_enabled = 1').all() as any[];
-    const { sendDailyGrammar, sendDailyPhrase } = await import('../commands/daily');
-    const isGrammarDay = new Date().getDay() % 2 === 0; // Alternate days
+    const users = db.prepare(`
+      SELECT id, telegram_id, language, wake_time, sleep_time, daily_vocab_count, reminder_enabled
+      FROM users WHERE reminder_enabled = 1
+    `).all() as any[];
+
     for (const user of users) {
-      if (isGrammarDay) {
-        await sendDailyGrammar(bot, user.telegram_id, user.telegram_id);
-      } else {
-        await sendDailyPhrase(bot, user.telegram_id, user.telegram_id);
+      const wakeTime = user.wake_time || '07:00';
+      const sleepTime = user.sleep_time || '23:00';
+      const vocabCount = user.daily_vocab_count || 5;
+
+      // Calculate personalized send times for this user
+      const sendTimes = calculateSendTimes(wakeTime, sleepTime, vocabCount);
+
+      // Check if current time matches any send time for this user
+      const matchIndex = sendTimes.indexOf(currentTime);
+      if (matchIndex === -1) continue;
+
+      // Check how many vocab we already sent today
+      const sentToday = db.prepare(
+        `SELECT COUNT(*) as cnt FROM learned_items WHERE user_id = ? AND learned_date = ? AND type = 'vocab'`
+      ).get(user.id, today) as any;
+      const alreadySent = sentToday?.cnt || 0;
+
+      if (alreadySent >= vocabCount) continue; // Already hit daily limit
+
+      // Determine what to send based on slot position
+      const totalSlots = sendTimes.length;
+      const isLastSlot = matchIndex === totalSlots - 1;
+      const isGrammarSlot = matchIndex === Math.floor(totalSlots / 2); // Middle slot = grammar/phrase
+
+      try {
+        if (isLastSlot) {
+          // Last slot: send review quiz
+          const { sendDailyReview } = await import('../commands/daily');
+          await sendDailyReview(bot, user.telegram_id, user.telegram_id);
+        } else if (isGrammarSlot && totalSlots > 2) {
+          // Middle slot: grammar or phrase (alternate days)
+          const isGrammarDay = now.getDay() % 2 === 0;
+          if (isGrammarDay) {
+            const { sendDailyGrammar } = await import('../commands/daily');
+            await sendDailyGrammar(bot, user.telegram_id, user.telegram_id);
+          } else {
+            const { sendDailyPhrase } = await import('../commands/daily');
+            await sendDailyPhrase(bot, user.telegram_id, user.telegram_id);
+          }
+        } else {
+          // All other slots: send vocabulary
+          const { sendDailyVocab } = await import('../commands/daily');
+          await sendDailyVocab(bot, user.telegram_id, user.telegram_id);
+        }
+      } catch (e: any) {
+        console.error(`Failed to send scheduled content to ${user.telegram_id}: ${e.message}`);
       }
-    }
-  });
-
-  // Auto-send Review at 21:00
-  cron.schedule('0 21 * * *', async () => {
-    const users = db.prepare('SELECT telegram_id FROM users WHERE reminder_enabled = 1').all() as any[];
-    const { sendDailyReview } = await import('../commands/daily');
-    for (const user of users) {
-      await sendDailyReview(bot, user.telegram_id, user.telegram_id);
     }
   });
 
