@@ -1,7 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import db from '../database/db';
 import { Lang } from '../utils/i18n';
-import { getSkillEmoji, formatDuration } from '../utils/helpers';
+import { getSkillEmoji, formatDuration, getVietnamToday, getVietnamDayOfWeek } from '../utils/helpers';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -24,8 +24,8 @@ export function registerTodayPlanCommand(bot: any): void {
     const user = db.prepare('SELECT * FROM users WHERE telegram_id = ?').get(telegramId) as any;
     if (!user) { await ctx.reply('/start first'); return; }
 
-    const today = new Date().toISOString().split('T')[0];
-    const dayOfWeek = new Date().getDay(); // 0=Sun, 1=Mon...
+    const today = getVietnamToday();
+    const dayOfWeek = getVietnamDayOfWeek();
 
     // Check what user already did today
     const todayLogs = db.prepare('SELECT skill, SUM(duration_minutes) as total FROM study_logs WHERE user_id = ? AND log_date = ? GROUP BY skill')

@@ -1,7 +1,7 @@
 import { Context } from 'telegraf';
 import db from '../database/db';
 import { t, Lang } from '../utils/i18n';
-import { getSkillEmoji, formatDuration } from '../utils/helpers';
+import { getSkillEmoji, formatDuration, getVietnamToday, getVietnamYesterday, getVietnamDaysAgo } from '../utils/helpers';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -50,7 +50,7 @@ export function registerLogCommand(bot: any): void {
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getVietnamToday();
 
     // Insert study log
     db.prepare(`
@@ -63,9 +63,7 @@ export function registerLogCommand(bot: any): void {
     let justHitMilestone = false;
 
     if (user.last_study_date !== today) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const yesterdayStr = getVietnamYesterday();
 
       if (user.last_study_date === yesterdayStr) {
         newStreak += 1;
@@ -124,13 +122,13 @@ export function registerLogCommand(bot: any): void {
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const todayStr = getVietnamToday();
 
     const logs = db.prepare(`
       SELECT skill, SUM(duration_minutes) as total, GROUP_CONCAT(notes, '; ') as all_notes
       FROM study_logs WHERE user_id = ? AND log_date = ?
       GROUP BY skill
-    `).all(user.id, today) as any[];
+    `).all(user.id, todayStr) as any[];
 
     if (logs.length === 0) {
       await ctx.reply(lang === 'vi'
@@ -143,7 +141,7 @@ export function registerLogCommand(bot: any): void {
     const totalMinutes = logs.reduce((sum: number, l: any) => sum + l.total, 0);
     const title = lang === 'vi' ? '📊 TỔNG KẾT HÔM NAY' : '📊 TODAY\'S SUMMARY';
 
-    let msg = `${title}\n━━━━━━━━━━━━━━━━━━━━━━\n📅 ${today}\n\n`;
+    let msg = `${title}\n━━━━━━━━━━━━━━━━━━━━━━\n📅 ${todayStr}\n\n`;
 
     for (const log of logs) {
       msg += `${getSkillEmoji(log.skill)} ${log.skill.charAt(0).toUpperCase() + log.skill.slice(1)}: ${formatDuration(log.total)}\n`;
@@ -164,9 +162,7 @@ export function registerLogCommand(bot: any): void {
     const user = db.prepare('SELECT id FROM users WHERE telegram_id = ?').get(telegramId) as any;
     if (!user) return;
 
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoStr = weekAgo.toISOString().split('T')[0];
+    const weekAgoStr = getVietnamDaysAgo(7);
 
     const logs = db.prepare(`
       SELECT skill, SUM(duration_minutes) as total
@@ -220,16 +216,14 @@ export function registerLogCommand(bot: any): void {
     if (!user) return;
 
     let streak = user.study_streak || 0;
-    const today = new Date().toISOString().split('T')[0];
+    const streakToday = getVietnamToday();
     let studiedToday = false;
 
-    if (user.last_study_date === today) {
+    if (user.last_study_date === streakToday) {
       studiedToday = true;
     } else {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      if (user.last_study_date !== yesterdayStr) {
+      const streakYesterday = getVietnamYesterday();
+      if (user.last_study_date !== streakYesterday) {
         streak = 0; // Lost streak
       }
     }

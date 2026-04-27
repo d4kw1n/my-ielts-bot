@@ -1,7 +1,7 @@
 import { Context } from 'telegraf';
 import db from '../database/db';
 import { Lang } from '../utils/i18n';
-import { overallBand, getSkillEmoji } from '../utils/helpers';
+import { overallBand, getSkillEmoji, getVietnamToday } from '../utils/helpers';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -67,7 +67,7 @@ Add notes after test type.`;
     }
 
     const overall = overallBand(listening, reading, writing, speaking);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getVietnamToday();
 
     // Save score
     db.prepare(`

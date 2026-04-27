@@ -3,24 +3,22 @@ import db from '../database/db';
 import { Lang } from '../utils/i18n';
 import { askAi } from '../services/ai_service';
 import { recordMistake } from './mistakes';
+import { getVietnamToday, getVietnamTomorrow, getVietnamYesterday, getVietnamDaysLater, shuffleArray } from '../utils/helpers';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
   return user?.language || 'vi';
 }
 
-function saveLearnedItem(userId: number, type: string, word: string, meaning: string, example: string) {
-  const today = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const nextReview = tomorrow.toISOString().split('T')[0];
+function saveLearnedItem(userId: number, type: string, word: string, meaningVi: string, meaningEn: string, example: string) {
+  const today = getVietnamToday();
+  const nextReview = getVietnamTomorrow();
   
   db.prepare(`
-    INSERT INTO learned_items (user_id, type, word, meaning, example, learned_date, next_review_date, mastery_level)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-  `).run(userId, type, word, meaning, example, today, nextReview);
+    INSERT INTO learned_items (user_id, type, word, meaning, meaning_vi, meaning_en, example, learned_date, next_review_date, mastery_level)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+  `).run(userId, type, word, meaningVi, meaningVi, meaningEn, example, today, nextReview);
 
-  // Auto-update study streak when learning new items
   updateStudyStreak(userId);
 }
 
@@ -28,13 +26,10 @@ function updateStudyStreak(userId: number): void {
   const user = db.prepare('SELECT study_streak, last_study_date FROM users WHERE id = ?').get(userId) as any;
   if (!user) return;
 
-  const today = new Date().toISOString().split('T')[0];
-  if (user.last_study_date === today) return; // Already updated today
+  const today = getVietnamToday();
+  if (user.last_study_date === today) return;
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
-
+  const yesterdayStr = getVietnamYesterday();
   const newStreak = user.last_study_date === yesterdayStr ? (user.study_streak || 0) + 1 : 1;
 
   db.prepare(`UPDATE users SET study_streak = ?, last_study_date = ?, updated_at = datetime('now') WHERE id = ?`)
@@ -65,9 +60,18 @@ export async function sendDailyVocab(bot: any, telegramId: string, chatId: strin
 
   const topicInstruction = topic ? `The vocabulary word MUST be strictly related to the topic: "${topic}".` : '';
 
+  const alreadyLearned = db.prepare(
+    `SELECT word FROM learned_items WHERE user_id = ? AND type = 'vocab' ORDER BY learned_date DESC LIMIT 100`
+  ).all(user.id) as any[];
+  const excludeWords = alreadyLearned.map((r: any) => r.word).join(', ');
+  const excludeInstruction = excludeWords
+    ? `Do NOT use any of these words (the user already learned them): [${excludeWords}].`
+    : '';
+
   const prompt = `
     Generate 1 advanced IELTS vocabulary word suitable for band ${band}.
     ${topicInstruction}
+    ${excludeInstruction}
     Format as JSON:
     {
       "word": "the word",
@@ -89,7 +93,18 @@ export async function sendDailyVocab(bot: any, telegramId: string, chatId: strin
     
     if (!data.word) throw new Error('Invalid JSON format');
 
-    saveLearnedItem(user.id, 'vocab', data.word, lang === 'vi' ? data.meaning_vi : data.meaning_en, data.example_en);
+    const duplicate = db.prepare(
+      `SELECT id FROM learned_items WHERE user_id = ? AND type = 'vocab' AND LOWER(word) = LOWER(?)`
+    ).get(user.id, data.word) as any;
+    if (duplicate) {
+      await bot.telegram.sendMessage(chatId, lang === 'vi'
+        ? `⚠️ Từ "*${data.word}*" bạn đã học rồi. Đang tìm từ khác...`
+        : `⚠️ You already learned "*${data.word}*". Finding another...`,
+        { parse_mode: 'Markdown' });
+      return sendDailyVocab(bot, telegramId, chatId, topic);
+    }
+
+    saveLearnedItem(user.id, 'vocab', data.word, data.meaning_vi, data.meaning_en, data.example_en);
 
     const msg = lang === 'vi'
       ? `📚 *TỪ VỰNG HÔM NAY* (Band ${band})\n━━━━━━━━━━━━━━━━━━━━━━\n\n🎯 *${data.word}* (${data.type}) / ${data.phonetic} /\n\n📖 *Ý nghĩa:* ${data.meaning_vi}\n💡 *English:* ${data.meaning_en}\n\n🔄 *Từ đồng nghĩa:* ${data.synonyms.join(', ')}\n🔗 *Cụm từ thường đi kèm:* ${data.collocations.join(', ')}\n\n📝 *Ví dụ IELTS:*\n- ${data.example_en}\n- _(${data.example_vi})_\n\n_(Từ này đã được lưu lại để ôn tập cuối ngày)_`
@@ -131,7 +146,7 @@ export async function sendDailyGrammar(bot: any, telegramId: string, chatId: str
     
     if (!data.name) throw new Error('Invalid JSON');
 
-    saveLearnedItem(user.id, 'grammar', data.name, lang === 'vi' ? data.usage_vi : data.usage_en, data.example_en);
+    saveLearnedItem(user.id, 'grammar', data.name, data.usage_vi, data.usage_en, data.example_en);
 
     const msg = lang === 'vi'
       ? `📝 *NGỮ PHÁP NÂNG CAO*\n━━━━━━━━━━━━━━━━━━━━━━\n\n📌 *${data.name}*\n📐 *Cấu trúc:* \`${data.formula}\`\n\n💡 *Cách dùng (IELTS):* ${data.usage_vi}\n\n📝 *Ví dụ:*\n- ${data.example_en}\n- _(${data.example_vi})_\n\n_(Cấu trúc này đã được lưu lại để ôn tập)_`
@@ -158,9 +173,18 @@ export async function sendDailyPhrase(bot: any, telegramId: string, chatId: stri
 
   const topicInstruction = topic ? `The phrase/idiom MUST be strictly related to the topic: "${topic}".` : '';
 
+  const alreadyLearnedPhrases = db.prepare(
+    `SELECT word FROM learned_items WHERE user_id = ? AND type = 'phrase' ORDER BY learned_date DESC LIMIT 50`
+  ).all(user.id) as any[];
+  const excludePhrases = alreadyLearnedPhrases.map((r: any) => r.word).join(', ');
+  const excludePhraseInstruction = excludePhrases
+    ? `Do NOT use any of these phrases (already learned): [${excludePhrases}].`
+    : '';
+
   const prompt = `
     Generate 1 useful IELTS phrase, idiom, or phrasal verb suitable for band ${band}.
     ${topicInstruction}
+    ${excludePhraseInstruction}
     Format as JSON:
     {
       "phrase": "the phrase",
@@ -179,7 +203,7 @@ export async function sendDailyPhrase(bot: any, telegramId: string, chatId: stri
     
     if (!data.phrase) throw new Error('Invalid JSON');
 
-    saveLearnedItem(user.id, 'phrase', data.phrase, lang === 'vi' ? data.meaning_vi : data.meaning_en, data.example_en);
+    saveLearnedItem(user.id, 'phrase', data.phrase, data.meaning_vi, data.meaning_en, data.example_en);
 
     const msg = lang === 'vi'
       ? `💬 *CỤM TỪ / THÀNH NGỮ*\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔥 *${data.phrase}*\n\n📖 *Ý nghĩa:* ${data.meaning_vi}\n🎯 *Áp dụng:* ${data.context}\n\n📝 *Ví dụ:*\n- ${data.example_en}\n- _(${data.example_vi})_\n\n_(Cụm từ này đã được lưu lại để ôn tập)_`
@@ -204,8 +228,22 @@ export async function sendDailyReview(bot: any, telegramId: string, chatId: stri
   const user = db.prepare('SELECT id FROM users WHERE telegram_id = ?').get(telegramId) as any;
   if (!user) return;
 
-  const today = new Date().toISOString().split('T')[0];
-  const items = db.prepare('SELECT * FROM learned_items WHERE user_id = ? AND learned_date = ?').all(user.id, today) as any[];
+  const today = getVietnamToday();
+
+  const todayItems = db.prepare(
+    'SELECT * FROM learned_items WHERE user_id = ? AND learned_date = ?'
+  ).all(user.id, today) as any[];
+
+  const srsItems = db.prepare(
+    'SELECT * FROM learned_items WHERE user_id = ? AND next_review_date <= ? AND mastery_level < 5 AND learned_date != ? ORDER BY next_review_date ASC LIMIT 10'
+  ).all(user.id, today, today) as any[];
+
+  const seenIds = new Set(todayItems.map((i: any) => i.id));
+  const combined = [...todayItems];
+  for (const item of srsItems) {
+    if (!seenIds.has(item.id)) combined.push(item);
+  }
+  const items = shuffleArray(combined);
 
   if (items.length === 0) {
     await bot.telegram.sendMessage(chatId, lang === 'vi' 
@@ -214,7 +252,6 @@ export async function sendDailyReview(bot: any, telegramId: string, chatId: stri
     return;
   }
 
-  // Start interactive review quiz
   activeReviewQuizzes.set(telegramId, { items, currentIndex: 0, correctCount: 0 });
 
   const intro = lang === 'vi'
@@ -233,32 +270,42 @@ async function sendReviewQuestion(bot: any, telegramId: string, chatId: string |
   const item = quiz.items[quiz.currentIndex];
   const icon = item.type === 'vocab' ? '🎯' : item.type === 'grammar' ? '📌' : '🔥';
 
-  // Generate 3 wrong options using AI, or use simple fallback
-  const correctAnswer = item.meaning;
-  const options = [correctAnswer];
-  
-  // Get other learned items as distractors
-  const otherItems = db.prepare('SELECT meaning FROM learned_items WHERE user_id = (SELECT id FROM users WHERE telegram_id = ?) AND meaning != ? ORDER BY RANDOM() LIMIT 3')
-    .all(telegramId, correctAnswer) as any[];
-  
+  const meaningCol = lang === 'vi' ? 'meaning_vi' : 'meaning_en';
+  const correctAnswer = (lang === 'vi' ? item.meaning_vi : item.meaning_en) || item.meaning;
+  const options = new Set<string>([correctAnswer]);
+
+  const otherItems = db.prepare(
+    `SELECT DISTINCT COALESCE(${meaningCol}, meaning) as m FROM learned_items
+     WHERE user_id = (SELECT id FROM users WHERE telegram_id = ?)
+       AND COALESCE(${meaningCol}, meaning) != ? AND id != ?
+     ORDER BY RANDOM() LIMIT 6`
+  ).all(telegramId, correctAnswer, item.id) as any[];
+
   for (const other of otherItems) {
-    if (options.length < 4) options.push(other.meaning);
+    if (options.size >= 4) break;
+    if (other.m && other.m.trim().toLowerCase() !== correctAnswer.trim().toLowerCase()) {
+      options.add(other.m);
+    }
   }
-  
-  // Pad with generic wrong answers if not enough distractors
-  const fallbacks = ['(không có nghĩa phù hợp)', 'to make worse', 'a type of animal', 'very quickly'];
-  while (options.length < 4) {
-    options.push(fallbacks[options.length - 1]);
+
+  const fallbacks = lang === 'vi'
+    ? ['(không rõ nghĩa)', 'làm cho tệ hơn', 'một loại động vật', 'rất nhanh chóng']
+    : ['(no clear meaning)', 'to make worse', 'a type of animal', 'very quickly'];
+  let fbIdx = 0;
+  while (options.size < 4 && fbIdx < fallbacks.length) {
+    options.add(fallbacks[fbIdx++]);
   }
-  
-  // Shuffle options
-  const shuffled = options.sort(() => Math.random() - 0.5);
+
+  const shuffled = shuffleArray([...options]);
   const correctIndex = shuffled.indexOf(correctAnswer);
 
   const msg = `${icon} ${lang === 'vi' ? 'Câu' : 'Q'} ${quiz.currentIndex + 1}/${quiz.items.length}\n\n*${item.word}* ${lang === 'vi' ? 'có nghĩa là gì?' : 'means what?'}`;
 
   const buttons = shuffled.map((opt: string, i: number) =>
-    [Markup.button.callback(`${String.fromCharCode(65 + i)}. ${opt.substring(0, 50)}`, `review_${quiz.currentIndex}_${i}_${correctIndex}`)]
+    [Markup.button.callback(
+      `${String.fromCharCode(65 + i)}. ${opt.substring(0, 50)}`,
+      `rv_${quiz.currentIndex}_${i === correctIndex ? 1 : 0}`
+    )]
   );
 
   await bot.telegram.sendMessage(chatId, msg, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
@@ -324,14 +371,13 @@ export function registerDailyCommands(bot: any): void {
     await sendDailyReview(bot, ctx.from!.id.toString(), ctx.chat!.id);
   });
 
-  // Review quiz answer handler
-  bot.action(/^review_(\d+)_(\d+)_(\d+)$/, async (ctx: Context) => {
+  // Review quiz answer handler (rv_<qIndex>_<1=correct|0=wrong>)
+  bot.action(/^rv_(\d+)_([01])$/, async (ctx: Context) => {
     const telegramId = ctx.from!.id.toString();
     const lang = getUserLang(telegramId);
     const match = (ctx as any).match;
     const qIndex = parseInt(match[1]);
-    const selected = parseInt(match[2]);
-    const correct = parseInt(match[3]);
+    const isCorrect = match[2] === '1';
 
     const quiz = activeReviewQuizzes.get(telegramId);
     if (!quiz || qIndex !== quiz.currentIndex) {
@@ -339,20 +385,31 @@ export function registerDailyCommands(bot: any): void {
       return;
     }
 
-    const isCorrect = selected === correct;
     if (isCorrect) quiz.correctCount++;
     quiz.currentIndex++;
 
     const item = quiz.items[qIndex];
+    const displayMeaning = (lang === 'vi' ? item.meaning_vi : item.meaning_en) || item.meaning;
     const feedback = isCorrect
-      ? `✅ *${item.word}* = ${item.meaning}`
-      : `❌ *${item.word}* = ${item.meaning}`;
+      ? `✅ *${item.word}* = ${displayMeaning}`
+      : `❌ *${item.word}* = ${displayMeaning}`;
 
-    // Track mistakes
-    if (!isCorrect) {
+    // Update SRS data
+    const srsIntervals = [1, 3, 7, 14, 30];
+    if (isCorrect) {
+      const newMastery = Math.min((item.mastery_level || 0) + 1, 5);
+      const nextDays = srsIntervals[Math.min(newMastery, srsIntervals.length - 1)];
+      const nextReview = getVietnamDaysLater(nextDays);
+      db.prepare(
+        `UPDATE learned_items SET mastery_level = ?, next_review_date = ?, review_count = review_count + 1 WHERE id = ?`
+      ).run(newMastery, nextReview, item.id);
+    } else {
+      db.prepare(
+        `UPDATE learned_items SET mastery_level = 0, next_review_date = ?, review_count = review_count + 1 WHERE id = ?`
+      ).run(getVietnamTomorrow(), item.id);
       const user = db.prepare('SELECT id FROM users WHERE telegram_id = ?').get(telegramId) as any;
       if (user) {
-        recordMistake(user.id, item.type || 'vocab', `What is the meaning of "${item.word}"?`, `option ${selected}`, item.meaning);
+        recordMistake(user.id, item.type || 'vocab', `What is the meaning of "${item.word}"?`, '(wrong option)', item.meaning);
       }
     }
 

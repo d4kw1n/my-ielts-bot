@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { Telegraf } from 'telegraf';
 import db from '../database/db';
+import { getVietnamTime, getVietnamToday, getVietnamDaysAgo, getVietnamDaysLater, getVietnamNow } from '../utils/helpers';
 
 /**
  * Calculate evenly-spaced send times for vocab/grammar/review throughout a user's waking hours.
@@ -80,8 +81,7 @@ const studySuggestions = {
 export function setupScheduler(bot: Telegraf): void {
   // Daily reminder - check every minute
   cron.schedule('* * * * *', () => {
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const currentTime = getVietnamTime();
 
     const users = db.prepare(
       `SELECT telegram_id, language, daily_reminder_time, study_streak FROM users WHERE reminder_enabled = 1 AND daily_reminder_time = ?`
@@ -107,12 +107,10 @@ export function setupScheduler(bot: Telegraf): void {
     }
   });
 
-  // Dynamic vocab/grammar/review scheduler — checks every minute
-  // Each user gets personalized send times based on wake_time, sleep_time, daily_vocab_count
   cron.schedule('* * * * *', async () => {
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const today = now.toISOString().split('T')[0];
+    const now = getVietnamNow();
+    const currentTime = getVietnamTime();
+    const today = getVietnamToday();
 
     const users = db.prepare(`
       SELECT id, telegram_id, language, wake_time, sleep_time, daily_vocab_count, reminder_enabled
@@ -172,7 +170,7 @@ export function setupScheduler(bot: Telegraf): void {
 
   // SRS Spaced Repetition reminder at 12:00
   cron.schedule('0 12 * * *', () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getVietnamToday();
     const users = db.prepare('SELECT id, telegram_id, language FROM users WHERE reminder_enabled = 1').all() as any[];
 
     for (const user of users) {
@@ -208,9 +206,7 @@ export function setupScheduler(bot: Telegraf): void {
 
   // Test reminder - check daily at 09:00
   cron.schedule('0 9 * * *', () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const tomorrowStr = getVietnamDaysLater(1);
 
     const tests = db.prepare(`
       SELECT st.*, u.telegram_id, u.language FROM scheduled_tests st
@@ -235,9 +231,7 @@ export function setupScheduler(bot: Telegraf): void {
     const users = db.prepare('SELECT * FROM users WHERE reminder_enabled = 1').all() as any[];
 
     for (const user of users) {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      const weekAgoStr = weekAgo.toISOString().split('T')[0];
+      const weekAgoStr = getVietnamDaysAgo(7);
 
       const totalStudy = db.prepare(
         `SELECT SUM(duration_minutes) as total, COUNT(DISTINCT log_date) as days FROM study_logs WHERE user_id = ? AND log_date >= ?`

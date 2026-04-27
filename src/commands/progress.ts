@@ -1,7 +1,7 @@
 import { Context } from 'telegraf';
 import db from '../database/db';
 import { Lang } from '../utils/i18n';
-import { progressBar, bandToPercentage, getSkillEmoji, getPhaseInfo, formatDuration } from '../utils/helpers';
+import { progressBar, bandToPercentage, getSkillEmoji, getPhaseInfo, formatDuration, getVietnamDaysAgo } from '../utils/helpers';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -39,12 +39,10 @@ export function registerProgressCommand(bot: any): void {
     `).get(user.id) as any;
 
     // Get this week's study
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
     const weekStudy = db.prepare(`
       SELECT SUM(duration_minutes) as total FROM study_logs
       WHERE user_id = ? AND log_date >= ?
-    `).get(user.id, weekAgo.toISOString().split('T')[0]) as any;
+    `).get(user.id, getVietnamDaysAgo(7)) as any;
 
     // Get test count
     const testCount = db.prepare(`

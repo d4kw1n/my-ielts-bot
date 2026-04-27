@@ -1,6 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import db from '../database/db';
 import { Lang } from '../utils/i18n';
+import { shuffleArray } from '../utils/helpers';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -41,8 +42,7 @@ function getQuizQuestions(count: number = 5): QuizQuestion[] {
     }).filter(q => q.options.length >= 2);
   }
 
-  // Fallback: built-in questions if question_bank is empty
-  const fallback = [
+  const fallback: { id: number; question: string; options: string[]; answer: number; explanation: string }[] = [
     { id: 0, question: 'What does "ubiquitous" mean?', options: ['Rare', 'Everywhere', 'Dangerous', 'Beautiful'], answer: 1, explanation: 'Ubiquitous = found everywhere' },
     { id: 0, question: 'What does "pragmatic" mean?', options: ['Dreamy', 'Practical', 'Dramatic', 'Romantic'], answer: 1, explanation: 'Pragmatic = dealing with things realistically' },
     { id: 0, question: 'What does "exacerbate" mean?', options: ['Improve', 'Worsen', 'Create', 'Remove'], answer: 1, explanation: 'Exacerbate = make worse' },
@@ -52,7 +52,13 @@ function getQuizQuestions(count: number = 5): QuizQuestion[] {
     { id: 0, question: 'What does "detrimental" mean?', options: ['Helpful', 'Harmful', 'Neutral', 'Exciting'], answer: 1, explanation: 'Detrimental = causing harm or damage' },
     { id: 0, question: 'What does "unprecedented" mean?', options: ['Common', 'Never before', 'Expected', 'Predicted'], answer: 1, explanation: 'Unprecedented = never done or known before' },
   ];
-  return [...fallback].sort(() => Math.random() - 0.5).slice(0, count);
+
+  const shuffledFallback = shuffleArray(fallback).slice(0, count).map(q => {
+    const correctOption = q.options[q.answer];
+    const shuffledOpts = shuffleArray(q.options);
+    return { ...q, options: shuffledOpts, answer: shuffledOpts.indexOf(correctOption) };
+  });
+  return shuffledFallback;
 }
 
 export function registerQuizCommand(bot: any): void {

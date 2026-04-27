@@ -1,3 +1,74 @@
+import { config } from '../config';
+
+// ── Timezone helpers (always returns Vietnam / configured TZ) ──
+
+export function getVietnamNow(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: config.timezone }));
+}
+
+export function getVietnamToday(): string {
+  const now = getVietnamNow();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getVietnamTime(): string {
+  const now = getVietnamNow();
+  return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+}
+
+export function getVietnamYesterday(): string {
+  const now = getVietnamNow();
+  now.setDate(now.getDate() - 1);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getVietnamTomorrow(): string {
+  const now = getVietnamNow();
+  now.setDate(now.getDate() + 1);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getVietnamDaysAgo(days: number): string {
+  const now = getVietnamNow();
+  now.setDate(now.getDate() - days);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getVietnamDaysLater(days: number): string {
+  const now = getVietnamNow();
+  now.setDate(now.getDate() + days);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getVietnamDayOfWeek(): number {
+  return getVietnamNow().getDay();
+}
+
+/** Fisher-Yates shuffle — uniform distribution */
+export function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // Progress bar utility for Telegram messages
 export function progressBar(current: number, target: number, length: number = 10): string {
   const percentage = Math.min(Math.round((current / target) * 100), 100);

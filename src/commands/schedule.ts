@@ -1,6 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import db from '../database/db';
 import { Lang } from '../utils/i18n';
+import { getVietnamNow } from '../utils/helpers';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -14,14 +15,16 @@ export function registerScheduleCommand(bot: any): void {
     const user = db.prepare('SELECT * FROM users WHERE telegram_id = ?').get(telegramId) as any;
     if (!user) { await ctx.reply('/start first'); return; }
 
-    // Generate next 4 weekend dates for suggestions
     const suggestions: string[] = [];
-    const now = new Date();
+    const now = getVietnamNow();
     for (let i = 1; i <= 28 && suggestions.length < 4; i++) {
       const d = new Date(now);
       d.setDate(now.getDate() + i);
-      if (d.getDay() === 0 || d.getDay() === 6) { // Weekend
-        suggestions.push(d.toISOString().split('T')[0]);
+      if (d.getDay() === 0 || d.getDay() === 6) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        suggestions.push(`${y}-${m}-${day}`);
       }
     }
 

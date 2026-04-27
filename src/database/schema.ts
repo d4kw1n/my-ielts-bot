@@ -188,6 +188,8 @@ export function initializeDatabase(): void {
     // Idempotent column additions (safe across any DB state)
     safeAddColumn('learned_items', 'next_review_date', 'TEXT');
     safeAddColumn('learned_items', 'mastery_level', 'INTEGER', '0');
+    safeAddColumn('learned_items', 'meaning_vi', 'TEXT');
+    safeAddColumn('learned_items', 'meaning_en', 'TEXT');
     safeAddColumn('question_bank', 'created_by', 'TEXT', "'manual'");
     safeAddColumn('question_bank', 'source_url', 'TEXT');
     safeAddColumn('question_bank', 'content_hash', 'TEXT');

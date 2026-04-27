@@ -1,6 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import db from '../database/db';
 import { Lang } from '../utils/i18n';
+import { getVietnamToday } from '../utils/helpers';
 
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
@@ -170,7 +171,7 @@ async function finishPlacementTest(ctx: Context, telegramId: string, testState: 
     db.prepare(`
       INSERT INTO placement_results (user_id, test_date, total_questions, correct_answers, estimated_band, details)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(user.id, new Date().toISOString().split('T')[0], totalQuestions, correct, finalBand, JSON.stringify(testState.answers));
+    `).run(user.id, getVietnamToday(), totalQuestions, correct, finalBand, JSON.stringify(testState.answers));
 
     // Update user's estimated band
     db.prepare("UPDATE users SET estimated_band = ?, updated_at = datetime('now') WHERE telegram_id = ?")
