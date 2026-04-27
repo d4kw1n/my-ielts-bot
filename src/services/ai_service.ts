@@ -83,7 +83,7 @@ export function getGroqClient(): Groq | null {
   return ks?.client ?? null;
 }
 
-export async function askAi(prompt: string, systemPrompt?: string): Promise<string> {
+export async function askAi(prompt: string, systemPrompt?: string, temperature = 0.7): Promise<string> {
   const pool = ensureKeyPool();
   if (pool.length === 0) {
     return '❌ Vui lòng cấu hình GROQ_API_KEY trong file .env để sử dụng tính năng AI.';
@@ -95,7 +95,6 @@ export async function askAi(prompt: string, systemPrompt?: string): Promise<stri
     const ks = getNextAvailableKey();
     if (!ks) break;
 
-    // Wait out remaining cooldown if every key was limited
     const waitMs = ks.cooldownUntil - Date.now();
     if (waitMs > 0) {
       await new Promise(r => setTimeout(r, waitMs));
@@ -111,7 +110,7 @@ export async function askAi(prompt: string, systemPrompt?: string): Promise<stri
           { role: 'user', content: prompt }
         ],
         model: 'llama-3.3-70b-versatile',
-        temperature: 0.7,
+        temperature,
         max_tokens: 1024,
       });
 

@@ -78,3 +78,9 @@
 {"level":"error","message":"Error for callback_query: Error: 400: Bad Request: query is too old and response timeout expired or query ID is invalid","service":"ielts-bot","timestamp":"2026-04-23 18:25:12"}
 {"level":"warn","message":"[2026-04-23T11:29:01.104Z] [PID: 1] \u001b[32m[NODE-CRON]\u001b[32m \u001b[33m[WARN]\u001b[0m missed execution at Thu Apr 23 2026 18:29:00 GMT+0700 (Indochina Time)! Possible blocking IO or high CPU user at the same process used by node-cron.","service":"ielts-bot","timestamp":"2026-04-23 18:29:01"}
 {"level":"info","message":"\nSIGTERM received. Shutting down...","service":"ielts-bot","timestamp":"2026-04-23 18:32:33"}
+{"level":"info","message":"🚀 Starting IELTS Study Tracker Bot...","service":"ielts-bot","timestamp":"2026-04-24 14:20:45"}
+{"level":"info","message":"Current database version: 0","service":"ielts-bot","timestamp":"2026-04-24 14:20:46"}
+{"level":"info","message":"Successfully migrated database to version 1","service":"ielts-bot","timestamp":"2026-04-24 14:20:46"}
+{"level":"info","message":"✅ Database initialized successfully","service":"ielts-bot","timestamp":"2026-04-24 14:20:46"}
+{"level":"info","message":"⏰ Scheduler initialized","service":"ielts-bot","timestamp":"2026-04-24 14:20:46"}
+{"level":"info","message":"\nSIGTERM received. Shutting down...","service":"ielts-bot","timestamp":"2026-04-24 14:20:50"}

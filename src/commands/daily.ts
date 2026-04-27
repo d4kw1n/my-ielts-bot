@@ -5,6 +5,29 @@ import { askAi } from '../services/ai_service';
 import { recordMistake } from './mistakes';
 import { getVietnamToday, getVietnamTomorrow, getVietnamYesterday, getVietnamDaysLater, shuffleArray } from '../utils/helpers';
 
+const VOCAB_TOPICS = [
+  'Environment & Climate Change', 'Technology & Innovation', 'Education & Learning',
+  'Health & Wellbeing', 'Urbanisation & City Life', 'Globalisation & Trade',
+  'Crime & Law', 'Media & Advertising', 'Art & Culture', 'Science & Research',
+  'Travel & Tourism', 'Food & Agriculture', 'Politics & Government',
+  'Space & Exploration', 'Psychology & Behaviour', 'Economics & Finance',
+  'History & Heritage', 'Sport & Fitness', 'Family & Relationships',
+  'Communication & Language', 'Work & Employment', 'Housing & Architecture',
+  'Transport & Infrastructure', 'Energy & Sustainability', 'Fashion & Lifestyle',
+  'Animals & Wildlife', 'Music & Entertainment', 'Philosophy & Ethics',
+];
+
+function pickRandomTopic(): string {
+  return VOCAB_TOPICS[Math.floor(Math.random() * VOCAB_TOPICS.length)];
+}
+
+function randomStartingLetter(): string {
+  const letters = 'ABCDEFGHIJKLMNOPRSTUVW';
+  return letters[Math.floor(Math.random() * letters.length)];
+}
+
+const MAX_VOCAB_RETRIES = 3;
+
 function getUserLang(telegramId: string): Lang {
   const user = db.prepare('SELECT language FROM users WHERE telegram_id = ?').get(telegramId) as any;
   return user?.language || 'vi';
@@ -46,19 +69,21 @@ function getCurrentLearningBand(user: any): number {
   return Math.min(target, calculated);
 }
 
-export async function sendDailyVocab(bot: any, telegramId: string, chatId: string | number, topic?: string): Promise<void> {
+export async function sendDailyVocab(bot: any, telegramId: string, chatId: string | number, topic?: string, _retryCount = 0): Promise<void> {
   const lang = getUserLang(telegramId);
   const user = db.prepare('SELECT id, target_score, estimated_band, study_streak FROM users WHERE telegram_id = ?').get(telegramId) as any;
   if (!user) return;
 
   const band = getCurrentLearningBand(user);
 
-  const findingMsg = topic 
-    ? (lang === 'vi' ? `⏳ Đang tìm kiếm từ vựng IELTS chủ đề *${topic}* cho bạn...` : `⏳ Finding a great IELTS vocabulary about *${topic}* for you...`)
-    : (lang === 'vi' ? '⏳ Đang tìm kiếm từ vựng IELTS hay cho bạn...' : '⏳ Finding a great IELTS vocabulary for you...');
-  await bot.telegram.sendMessage(chatId, findingMsg, { parse_mode: 'Markdown' });
+  const effectiveTopic = topic || pickRandomTopic();
 
-  const topicInstruction = topic ? `The vocabulary word MUST be strictly related to the topic: "${topic}".` : '';
+  if (_retryCount === 0) {
+    const findingMsg = topic
+      ? (lang === 'vi' ? `⏳ Đang tìm kiếm từ vựng IELTS chủ đề *${topic}* cho bạn...` : `⏳ Finding a great IELTS vocabulary about *${topic}* for you...`)
+      : (lang === 'vi' ? `⏳ Đang tìm kiếm từ vựng IELTS chủ đề *${effectiveTopic}* cho bạn...` : `⏳ Finding a great IELTS vocabulary about *${effectiveTopic}* for you...`);
+    await bot.telegram.sendMessage(chatId, findingMsg, { parse_mode: 'Markdown' });
+  }
 
   const alreadyLearned = db.prepare(
     `SELECT word FROM learned_items WHERE user_id = ? AND type = 'vocab' ORDER BY learned_date DESC LIMIT 100`
@@ -68,10 +93,14 @@ export async function sendDailyVocab(bot: any, telegramId: string, chatId: strin
     ? `Do NOT use any of these words (the user already learned them): [${excludeWords}].`
     : '';
 
+  const startLetter = randomStartingLetter();
+
   const prompt = `
     Generate 1 advanced IELTS vocabulary word suitable for band ${band}.
-    ${topicInstruction}
+    The word MUST be related to the topic: "${effectiveTopic}".
+    The word should start with the letter "${startLetter}" (if possible, otherwise pick any uncommon word).
     ${excludeInstruction}
+    Be creative and pick a less common, surprising word — avoid generic choices.
     Format as JSON:
     {
       "word": "the word",
@@ -88,7 +117,7 @@ export async function sendDailyVocab(bot: any, telegramId: string, chatId: strin
   `;
 
   try {
-    const response = await askAi(prompt);
+    const response = await askAi(prompt, undefined, 0.9);
     const data = JSON.parse(response || '{}');
     
     if (!data.word) throw new Error('Invalid JSON format');
@@ -97,11 +126,10 @@ export async function sendDailyVocab(bot: any, telegramId: string, chatId: strin
       `SELECT id FROM learned_items WHERE user_id = ? AND type = 'vocab' AND LOWER(word) = LOWER(?)`
     ).get(user.id, data.word) as any;
     if (duplicate) {
-      await bot.telegram.sendMessage(chatId, lang === 'vi'
-        ? `⚠️ Từ "*${data.word}*" bạn đã học rồi. Đang tìm từ khác...`
-        : `⚠️ You already learned "*${data.word}*". Finding another...`,
-        { parse_mode: 'Markdown' });
-      return sendDailyVocab(bot, telegramId, chatId, topic);
+      if (_retryCount < MAX_VOCAB_RETRIES) {
+        return sendDailyVocab(bot, telegramId, chatId, topic, _retryCount + 1);
+      }
+      // Max retries reached — accept it and inform user
     }
 
     saveLearnedItem(user.id, 'vocab', data.word, data.meaning_vi, data.meaning_en, data.example_en);
@@ -141,7 +169,7 @@ export async function sendDailyGrammar(bot: any, telegramId: string, chatId: str
   `;
 
   try {
-    const response = await askAi(prompt);
+    const response = await askAi(prompt, undefined, 0.9);
     const data = JSON.parse(response || '{}');
     
     if (!data.name) throw new Error('Invalid JSON');
@@ -198,7 +226,7 @@ export async function sendDailyPhrase(bot: any, telegramId: string, chatId: stri
   `;
 
   try {
-    const response = await askAi(prompt);
+    const response = await askAi(prompt, undefined, 0.9);
     const data = JSON.parse(response || '{}');
     
     if (!data.phrase) throw new Error('Invalid JSON');
